@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import jakarta.validation.ConstraintViolationException;
@@ -27,6 +29,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleNotFound(NotFoundException ex) {
         log.warn("Not Found: {}", ex.getMessage(), ex);
         return responseUtil.error(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+    
+    @ExceptionHandler({
+        NoHandlerFoundException.class,
+        NoResourceFoundException.class
+    })
+    public ResponseEntity<?> handle404(Exception ex) {
+        log.warn("Endpoint not found: {}", ex.getMessage());
+        return responseUtil.error(
+            "Endpoint tidak ditemukan.",
+            HttpStatus.NOT_FOUND
+        );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

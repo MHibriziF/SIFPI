@@ -16,9 +16,9 @@ Make sure to create a .env file at the root of this project. Follow the example 
 
 - Make sure that Docker is installed and is currently running on your device
 - Run `docker compose up -d` in your terminal.
-- Project should be running and you can do a healtcheck at `http://localhost:8080/actuator/health`
+- Project should be running and you can do a healthcheck at `http://localhost:8080/actuator/health`
 
 ### With Gradle
 
 - Run `./gradlew bootRun` in your terminal.
-- Project should be running and you can do a healtcheck at `http://localhost:8080/actuator/health`
+- Project should be running and you can do a healthcheck at `http://localhost:8080/actuator/health`
