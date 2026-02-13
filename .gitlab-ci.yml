@@ -1,0 +1,25 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  image: gradle:8-jdk21
+  script:
+    - chmod +x gradlew
+    - ./gradlew test --no-daemon
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+deploy-railway:
+  stage: deploy
+  image: ghcr.io/railwayapp/cli:latest
+  script:
+    - railway up --service=$SVC_ID
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
