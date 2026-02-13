@@ -1,0 +1,29 @@
+services:
+  sifpi-app-db:
+    image: postgres:17.5-alpine
+    ports:
+      - "35001:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DEV_USERNAME}
+      POSTGRES_PASSWORD: ${DEV_PASSWORD}
+      POSTGRES_DB: ${DEV_DB}
+    volumes:
+      - sifpi-app-db:/var/lib/postgresql/data
+
+  sifpi-app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sifpi-app-db
+    environment:
+      SPRING_DATASOURCE_URL: ${DATABASE_URL_DEV}
+      SPRING_DATASOURCE_USERNAME: ${DEV_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DEV_PASSWORD}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+
+volumes:
+  sifpi-app-db:
+    driver: local

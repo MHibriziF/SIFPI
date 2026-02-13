@@ -1,0 +1,10 @@
+.gradle
+build
+.git
+.gitignore
+.idea
+*.iml
+.vscode
+.env
+logs
+HELP.md

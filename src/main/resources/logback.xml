@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ──────────────────────────────────────── -->
+    <!--  Console output                          -->
+    <!-- ──────────────────────────────────────── -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %cyan(%-40.40logger{39}) : %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ──────────────────────────────────────── -->
+    <!--  Daily rolling log file                  -->
+    <!-- ──────────────────────────────────────── -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/ipfo.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/ipfo-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} : %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ──────────────────────────────────────── -->
+    <!--  Error-only log file                     -->
+    <!-- ──────────────────────────────────────── -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/ipfo-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/ipfo-error-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>60</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} : %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ──────────────────────────────────────── -->
+    <!--  Log levels per profile                  -->
+    <!-- ──────────────────────────────────────── -->
+
+    <!-- Reduce noise from frameworks (always) -->
+    <logger name="org.springframework" level="WARN" />
+    <logger name="org.hibernate" level="WARN" />
+    <logger name="org.postgresql" level="WARN" />
+    <logger name="org.apache" level="WARN" />
+    <logger name="com.zaxxer" level="WARN" />
+
+    <springProfile name="dev">
+        <logger name="id.go.kemenkoinfra.ipfo" level="DEBUG" />
+        <logger name="org.hibernate.SQL" level="DEBUG" />
+    </springProfile>
+
+    <springProfile name="prod">
+        <logger name="id.go.kemenkoinfra.ipfo" level="INFO" />
+        <logger name="org.hibernate.SQL" level="WARN" />
+    </springProfile>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERROR_FILE" />
+    </root>
+
+</configuration>
