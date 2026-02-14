@@ -25,6 +25,7 @@ public class CacheConfig {
             Caffeine.newBuilder()
                 .maximumSize(500)
                 .expireAfterWrite(Duration.ofDays(7))
+                .recordStats()
                 .build());
 
         // News — updated frequently
@@ -32,6 +33,7 @@ public class CacheConfig {
             Caffeine.newBuilder()
                 .maximumSize(200)
                 .expireAfterWrite(Duration.ofHours(1))
+                .recordStats()
                 .build());
 
         // Project detail — individual project pages
@@ -39,12 +41,14 @@ public class CacheConfig {
             Caffeine.newBuilder()
                 .maximumSize(1000)
                 .expireAfterWrite(Duration.ofDays(1))
+                .recordStats()
                 .build());
 
         // Default for any other cache names
         manager.setCaffeine(Caffeine.newBuilder()
             .maximumSize(100)
-            .expireAfterWrite(Duration.ofMinutes(10)));
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .recordStats());
 
         return manager;
     }

@@ -3,7 +3,17 @@ workflow:
     - if: $CI_COMMIT_BRANCH
 
 stages:
+  - build
   - deploy
+
+build:
+  stage: build
+  image: gradle:8-jdk21
+  script:
+    - gradle clean build -x test
+  artifacts:
+    paths:
+      - build/
 
 deploy-production:
   stage: deploy
