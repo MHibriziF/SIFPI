@@ -17,3 +17,11 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 86400000
+  cookie-name: SIFPI_TOKEN
+  cookie-path: /
+  cookie-secure: true
+  cookie-same-site: Lax
