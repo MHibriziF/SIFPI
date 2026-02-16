@@ -110,6 +110,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAll(Exception ex) {
         log.error("Unhandled exception occurred", ex);
-        return responseUtil.error("Kesalahan sistem: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return responseUtil.error("Terjadi kesalahan pada sistem ", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

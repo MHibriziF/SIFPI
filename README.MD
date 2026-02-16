@@ -1,4 +1,4 @@
-# SIFPI - Sistem Informasi Fasilitator Projek IPFO
+# SIFPI - Sistem Informasi Fasilitasi Proyek Infrastruktur
 
 ## Project Structure
 
@@ -31,13 +31,15 @@ sifpi-be/
 │   │   │           │   └── ExampleRepository.java
 │   │   │           ├── model/                     # Domain entities
 │   │   │           │   └── Example.java
+│   │   │           ├── mapper/                    # Mapping between entities and DTOs
+│   │   │           │   └── ExampleMapper.java
 │   │   │           └── dto/                       # Feature-specific DTOs
 │   │   │               └── ExampleDTO.java
 │   │   └── resources/
 │   │       ├── application.yaml                   # Main configuration file
 │   │       ├── application-dev.yaml               # Development profile config
 │   │       ├── application-prod.yaml              # Production profile config
-│   │       ├── logback.xml                        # Logging configuration
+│   │       ├── logback-spring.xml                        # Logging configuration
 │   │       └── static/                            # Static resources
 │   └── test/
 │       └── java/                                  # Test classes

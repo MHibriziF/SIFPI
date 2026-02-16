@@ -1,13 +1,23 @@
 server:
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
+  forward-headers-strategy: framework
   port: 8080
 
 spring:
   application:
     name: sifpi
-
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 25MB
   profiles:
     active:
       - dev
+  jpa:
+    open-in-view: false
 
 management:
   endpoints:

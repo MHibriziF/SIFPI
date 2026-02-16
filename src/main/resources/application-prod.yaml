@@ -5,3 +5,7 @@ spring:
     url: ${DATABASE_URL_PROD}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
