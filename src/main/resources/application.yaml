@@ -28,6 +28,13 @@ management:
     health:
       show-details: when-authorized
 
+storage:
+  endpoint: ${STORAGE_ENDPOINT:}
+  access-key: ${STORAGE_ACCESS_KEY:}
+  secret-key: ${STORAGE_SECRET_KEY:}
+  bucket-name: ${STORAGE_BUCKET_NAME:}
+  region: ${STORAGE_REGION:us-east-1}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 86400000
