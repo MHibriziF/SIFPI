@@ -14,8 +14,6 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -24,6 +22,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "storage", name = "endpoint", matchIfMissing = false)
 public class StorageService {
+
+    public record FileDownload(byte[] data, String contentType) {}
 
     private final S3Client s3Client;
     private final StorageProperties storageProperties;
@@ -47,32 +47,19 @@ public class StorageService {
         }
     }
 
-    public byte[] download(String key) {
+    public FileDownload download(String key) {
         try {
             GetObjectRequest request = GetObjectRequest.builder()
                     .bucket(storageProperties.getBucketName())
                     .key(key)
                     .build();
 
-            return s3Client.getObject(request).readAllBytes();
+            var response = s3Client.getObject(request);
+            return new FileDownload(response.readAllBytes(), response.response().contentType());
         } catch (NoSuchKeyException e) {
             throw new id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException("File", key);
         } catch (IOException e) {
             throw new RuntimeException("Gagal mengunduh file: " + e.getMessage(), e);
-        }
-    }
-
-    public String getContentType(String key) {
-        try {
-            HeadObjectRequest request = HeadObjectRequest.builder()
-                    .bucket(storageProperties.getBucketName())
-                    .key(key)
-                    .build();
-
-            HeadObjectResponse response = s3Client.headObject(request);
-            return response.contentType();
-        } catch (NoSuchKeyException e) {
-            throw new id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException("File", key);
         }
     }
 

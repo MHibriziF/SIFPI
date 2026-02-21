@@ -9,10 +9,11 @@
 | Method | Params | Returns | Description |
 |--------|--------|---------|-------------|
 | `upload(folder, file)` | `String folder`, `MultipartFile file` | `String` (object key) | Uploads file to `{folder}/{uuid}.{ext}` |
-| `download(key)` | `String key` | `byte[]` | Downloads file content |
-| `getContentType(key)` | `String key` | `String` | Returns the file's MIME type |
+| `download(key)` | `String key` | `FileDownload` | Downloads file — returns bytes + content type in one call |
 | `delete(key)` | `String key` | `void` | Deletes file from bucket |
 | `getPublicUrl(key)` | `String key` | `String` | Returns the full public URL |
+
+`FileDownload` is a nested record on `StorageService`: `StorageService.FileDownload(byte[] data, String contentType)`.
 
 ## Injecting into Your Service
 
@@ -32,12 +33,10 @@ In your service, accept a `MultipartFile` and call `upload` with a folder name. 
 
 ```java
 public ProjectDTO createProject(CreateProjectRequest request, MultipartFile thumbnail) {
-    // upload file — stored as "projects/{uuid}.png"
     String fileKey = storageService.upload("projects", thumbnail);
 
-    Project project = new Project();
-    project.setName(request.getName());
-    project.setThumbnailKey(fileKey); // store the key, not the URL
+    Project project = projectMapper.toEntity(request);
+    project.setThumbnailKey(fileKey); // set after mapping since it comes from the upload, not the request
     projectRepository.save(project);
 
     return projectMapper.toDTO(project);
@@ -59,8 +58,10 @@ public ResponseEntity<BaseResponseDTO<ProjectDTO>> create(
 
 ## Download Example
 
+File downloads need both the bytes and the content type. Use a record to return both from the service so the controller doesn't need to call `StorageService` directly:
+
 ```java
-public byte[] getProjectThumbnail(UUID projectId) {
+public StorageService.FileDownload getProjectThumbnail(UUID projectId) {
     Project project = projectRepository.findById(projectId)
             .orElseThrow(() -> new NotFoundException("Project", projectId));
 
@@ -68,18 +69,15 @@ public byte[] getProjectThumbnail(UUID projectId) {
 }
 ```
 
-Controller returning the file as a response:
+The controller only calls the feature service — no `StorageService` injection needed here:
 
 ```java
 @GetMapping("/{id}/thumbnail")
 public ResponseEntity<byte[]> getThumbnail(@PathVariable UUID id) {
-    Project project = projectService.findById(id);
-    String contentType = storageService.getContentType(project.getThumbnailKey());
-    byte[] data = storageService.download(project.getThumbnailKey());
-
+    StorageService.FileDownload file = projectService.getProjectThumbnail(id);
     return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_TYPE, contentType)
-            .body(data);
+            .header(HttpHeaders.CONTENT_TYPE, file.contentType())
+            .body(file.data());
 }
 ```
 
@@ -103,18 +101,30 @@ public void deleteProject(UUID projectId) {
 
 ## Get Public URL Example
 
-Use this when you need to return a URL to the client (e.g., in a DTO):
+Use `getPublicUrl` when you need to expose a file URL in a DTO. Don't do manual mapping in the service — use a MapStruct `@AfterMapping` to resolve the key to a URL:
 
 ```java
-public ProjectDTO toDTO(Project project) {
-    ProjectDTO dto = new ProjectDTO();
-    dto.setName(project.getName());
+@Mapper(componentModel = "spring")
+public interface ProjectMapper {
+    ProjectDTO toDTO(Project project);
 
-    if (project.getThumbnailKey() != null) {
-        dto.setThumbnailUrl(storageService.getPublicUrl(project.getThumbnailKey()));
+    @AfterMapping
+    default void setThumbnailUrl(Project project, @MappingTarget ProjectDTO dto,
+            @Context StorageService storageService) {
+        if (project.getThumbnailKey() != null) {
+            dto.setThumbnailUrl(storageService.getPublicUrl(project.getThumbnailKey()));
+        }
     }
+}
+```
 
-    return dto;
+Then in the service, pass `storageService` as a context argument when calling the mapper:
+
+```java
+public ProjectDTO getProject(UUID id) {
+    Project project = projectRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Project", id));
+    return projectMapper.toDTO(project, storageService);
 }
 ```
 
@@ -128,5 +138,5 @@ public ProjectDTO toDTO(Project project) {
 ## Error Handling
 
 - Uploading with an empty file throws `IllegalArgumentException` (validate in your controller).
-- Downloading/getting content type of a nonexistent key throws `NotFoundException`.
+- Downloading a nonexistent key throws `NotFoundException`.
 - IO errors during upload/download throw `RuntimeException` — caught by `GlobalExceptionHandler`.
