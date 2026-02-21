@@ -2,11 +2,13 @@ package id.go.kemenkoinfra.ipfo.sifpi.common.utils;
 
 import java.util.Date;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 
 @Component
 public class ResponseUtil {
@@ -26,6 +28,18 @@ public class ResponseUtil {
         response.setData(data);
         response.setTimestamp(new Date());
         return new ResponseEntity<>(response, status);
+    }
+
+    /**
+     * Build a success response with paged data, message and status.
+     * @param page the paged data to be returned in the response
+     * @param message the message to be returned in the response
+     * @param status the status of the response
+     * @return a ResponseEntity containing the response
+     * @see PagedResponseDTO
+     */
+    public <T> ResponseEntity<BaseResponseDTO<PagedResponseDTO<T>>> successPaged(Page<T> page, String message, HttpStatus status) {
+        return success(new PagedResponseDTO<>(page), message, status);
     }
 
     /**

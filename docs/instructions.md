@@ -18,7 +18,7 @@ If the rebase runs into many conflicts (resolving them commit-by-commit gets mes
 
 ```bash
 git rebase --abort
-git merge origin/staging
+git pull origin staging
 ```
 
 Make it a habit to do this at the start of each working session.
@@ -136,6 +136,40 @@ public ProjectDTO getProject(UUID id) { ... }
 
 If you need a new cache with custom sizing/TTL, add it in `CacheConfig`. Otherwise, any unlisted cache name falls back to the default (100 entries, 10 min TTL).
 
+### Eviction strategy
+
+Caches go stale on writes. Evict the relevant caches on every create, update, and delete operation.
+
+**Evict a single entry** (by key) when updating or deleting a specific item:
+
+```java
+@CacheEvict(value = AppConstant.CACHE_PROJECT_DETAIL, key = "#id")
+public void deleteProject(UUID id) { ... }
+```
+
+**Evict all entries** in a collection cache on any write — the whole list is now stale:
+
+```java
+@CacheEvict(value = AppConstant.CACHE_PROJECTS, allEntries = true)
+public ProjectDTO createProject(CreateProjectRequest request) { ... }
+```
+
+**Combine multiple evictions** with `@Caching` when a write affects both a detail cache and a collection cache:
+
+```java
+@Caching(evict = {
+    @CacheEvict(value = AppConstant.CACHE_PROJECT_DETAIL, key = "#id"),
+    @CacheEvict(value = AppConstant.CACHE_PROJECTS, allEntries = true)
+})
+public ProjectDTO updateProject(UUID id, UpdateProjectRequest request) { ... }
+```
+
+As a general rule:
+
+- **Create** → evict collection caches (`allEntries = true`)
+- **Update** → evict the specific detail entry + evict collection caches
+- **Delete** → evict the specific detail entry + evict collection caches
+
 ## Request & Response DTOs
 
 Never expose entity classes directly in controllers. Use DTOs for both incoming requests and outgoing responses, kept in the feature's `dto/` package.
@@ -214,6 +248,7 @@ All API responses use `BaseResponseDTO<T>` via `ResponseUtil`:
 
 ```java
 return responseUtil.success(data, "Berhasil.", HttpStatus.OK);
+return responseUtil.successPaged(result, "Berhasil.", HttpStatus.OK); // If data contains paginations
 return responseUtil.error("Gagal.", HttpStatus.BAD_REQUEST);
 ```
 
@@ -389,3 +424,171 @@ When **not** to:
 - Every column by default — indexes have a write cost
 
 Use composite indexes when queries consistently filter on multiple columns together. Column order matters: put the more selective column first.
+
+## Logging
+
+Use **SLF4J** via Lombok's `@Slf4j` annotation. This gives you a `log` field without any boilerplate.
+
+```java
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ProjectService {
+    // log is available automatically
+}
+```
+
+### Log levels
+
+| Level            | When to use                                                                       |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `log.debug(...)` | Detailed diagnostic info — disabled in production by default                      |
+| `log.info(...)`  | Normal operations: entity created/updated/deleted, significant state changes      |
+| `log.warn(...)`  | Something unexpected but recoverable — e.g. a file was missing but had a fallback |
+| `log.error(...)` | Unexpected failures that likely indicate a bug or infrastructure problem          |
+
+### Rules
+
+- **Use parameterized logging** — never concatenate strings:
+
+  ```java
+  log.info("Project created: {}", project.getId());   // correct
+  log.info("Project created: " + project.getId());    // don't do this — allocates even when log level is off
+  ```
+
+- **Never log sensitive data** — no passwords, tokens, personal data, or full request bodies containing credentials.
+
+- **Log with context** — include relevant IDs so you can trace an issue:
+
+  ```java
+  log.warn("Thumbnail not found for project {}, skipping delete", projectId);
+  log.error("Failed to upload file for project {}: {}", projectId, e.getMessage(), e);
+  ```
+
+- **Don't log and throw** — pick one. If you throw, the exception handler or the caller can log. Logging then re-throwing creates duplicate log entries:
+
+  ```java
+  // don't do this
+  } catch (IOException e) {
+      log.error("Upload failed", e);
+      throw new RuntimeException("Gagal mengunggah file", e);
+  }
+
+  // do this — just rethrow; the global handler or calling code can log
+  } catch (IOException e) {
+      throw new RuntimeException("Gagal mengunggah file: " + e.getMessage(), e);
+  }
+  ```
+
+## Transactions
+
+Use `@Transactional` at the **service layer** — never on controllers.
+
+### When to use it
+
+Add `@Transactional` on methods that perform **multiple writes** that must succeed or fail together:
+
+```java
+@Transactional
+public ProjectDTO createProject(CreateProjectRequest request, MultipartFile thumbnail) {
+    String fileKey = storageService.upload("projects", thumbnail);
+
+    Project project = projectMapper.toEntity(request);
+    project.setThumbnailKey(fileKey);
+    projectRepository.save(project);
+
+    // if anything above fails, the whole method rolls back
+    return projectMapper.toDTO(project);
+}
+```
+
+For **read-only** methods, add `readOnly = true` — it's a small performance hint to the JPA provider and connection pool:
+
+```java
+@Transactional(readOnly = true)
+public ProjectDTO getProject(UUID id) {
+    Project project = projectRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Project", id));
+    return projectMapper.toDTO(project);
+}
+```
+
+### When you don't need it
+
+- Simple single-read methods — Spring Data repositories are already transactional internally.
+- Methods that only call other `@Transactional` service methods — they'll join the existing transaction.
+
+### Rules
+
+- `@Transactional` only works on **public** methods — Spring AOP proxies can't intercept private or package-private calls.
+- Don't annotate the whole class unless every method genuinely needs a transaction. Prefer per-method annotation to be explicit.
+- Lazy-loaded relationships can be accessed inside a `@Transactional` method because the session is still open. Outside of one, accessing a lazy collection throws `LazyInitializationException` — map to DTO inside the transaction to avoid this.
+
+## Pagination
+
+Spring Data JPA has built-in pagination. Consider using pagination when response contain many records.
+
+### Repository
+
+Add a `Pageable` parameter to any repository method:
+
+```java
+public interface ProjectRepository extends JpaRepository<Project, UUID> {
+    Page<Project> findAll(Pageable pageable);
+    Page<Project> findByStatus(ProjectStatus status, Pageable pageable);
+}
+```
+
+### Service
+
+Accept `Pageable` from the controller and return `Page<FeatureDTO>`. Map the page content using `.map()`:
+
+```java
+@Transactional(readOnly = true)
+public Page<ProjectDTO> getProjects(Pageable pageable) {
+    return projectRepository.findAll(pageable).map(projectMapper::toDTO);
+}
+```
+
+### Controller
+
+Spring MVC auto-resolves `Pageable` from query parameters (`?page=0&size=20&sort=createdAt,desc`). Use `@PageableDefault` to set sensible defaults, and use `responseUtil.successPaged()` instead of `success()`:
+
+```java
+@GetMapping
+public ResponseEntity<BaseResponseDTO<PagedResponseDTO<ProjectDTO>>> getAll(
+        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+    Page<ProjectDTO> result = projectService.getProjects(pageable);
+    return responseUtil.successPaged(result, "Berhasil.", HttpStatus.OK);
+}
+```
+
+`successPaged` wraps the `Page<T>` into `PagedResponseDTO<T>` automatically. The response JSON will be:
+
+```json
+{
+  "status": 200,
+  "message": "Berhasil.",
+  "timestamp": "...",
+  "data": {
+    "content": [...],
+    "page": 0,
+    "size": 20,
+    "totalElements": 100,
+    "totalPages": 5,
+    "first": true,
+    "last": false
+  }
+}
+```
+
+### Sorting
+
+Clients can pass `sort=field,direction` — multiple sort params are allowed:
+
+```
+GET /api/projects?page=0&size=10&sort=status,asc&sort=createdAt,desc
+```
+
+Only expose fields that are safe to sort on. If you need to restrict which fields clients can sort by, validate `pageable.getSort()` in the service before passing it to the repository.
