@@ -1,7 +1,9 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.security;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,14 +34,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromCookie(request);
 
-        if (token != null && jwtService.isTokenValid(token)) {
-            Claims claims = jwtService.extractAllClaims(token);
+        if (token != null) {
+            Claims claims = jwtService.extractClaimsOrNull(token);
+            if (claims == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             String subject = claims.getSubject();
 
-            List<SimpleGrantedAuthority> authorities = List.of();
+            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
             String role = claims.get("role", String.class);
             if (role != null) {
-                authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, List<String>> permissions = claims.get("permissions", Map.class);
+            if (permissions != null) {
+                permissions.forEach((action, resources) ->
+                        resources.stream()
+                                .map(resource -> new SimpleGrantedAuthority(resource + ":" + action))
+                                .forEach(authorities::add)
+                );
             }
 
             UsernamePasswordAuthenticationToken authentication =
