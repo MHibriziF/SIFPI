@@ -43,17 +43,12 @@ public class JwtService {
                 .compact();
     }
 
-    public boolean isTokenValid(String token) {
+    public Claims extractClaimsOrNull(String token) {
         try {
-            extractAllClaims(token);
-            return true;
+            return extractAllClaims(token);
         } catch (JwtException | IllegalArgumentException e) {
-            return false;
+            return null;
         }
-    }
-
-    public String extractSubject(String token) {
-        return extractAllClaims(token).getSubject();
     }
 
     public Claims extractAllClaims(String token) {
