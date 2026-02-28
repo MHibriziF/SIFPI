@@ -1,16 +1,17 @@
-package id.go.kemenkoinfra.ipfo.sifpi.auth.service;
+package id.go.kemenkoinfra.ipfo.sifpi.auth.service.impl;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.AuthService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.AuthResponseDTO;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.LoginRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.LoginRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.AuthMapper;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RolePermission;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RolePermissionRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
@@ -40,16 +41,15 @@ public class AuthServiceImpl implements AuthService {
             throw new SecurityException("Email atau password salah.");
         }
 
-        Map<String, List<String>> permissions = buildPermissions(user);
+        List<RolePermission> rolePermissions = rolePermissionRepository.findByRoleWithResource(user.getRole());
+        AuthResponseDTO dto = authMapper.toDTO(user, rolePermissions);
+
         String token = jwtService.generateToken(user.getEmail(), Map.of(
                 "role", user.getRole().getName(),
-                "permissions", permissions
+                "permissions", dto.getPermissions()
         ));
 
         log.info("User logged in: {}", user.getEmail());
-
-        AuthResponseDTO dto = authMapper.toDTO(user);
-        dto.setPermissions(permissions);
 
         return new LoginResult(jwtService.createJwtCookie(token), dto);
     }
@@ -60,18 +60,9 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new SecurityException("Pengguna tidak ditemukan."));
 
-        AuthResponseDTO dto = authMapper.toDTO(user);
-        dto.setPermissions(buildPermissions(user));
-
-        return dto;
+        List<RolePermission> rolePermissions = rolePermissionRepository.findByRoleWithResource(user.getRole());
+        return authMapper.toDTO(user, rolePermissions);
     }
 
-    private Map<String, List<String>> buildPermissions(User user) {
-        return rolePermissionRepository.findByRoleWithResource(user.getRole())
-                .stream()
-                .collect(Collectors.groupingBy(
-                        rp -> rp.getAction().name(),
-                        Collectors.mapping(rp -> rp.getResource().getName(), Collectors.toList())
-                ));
-    }
+
 }

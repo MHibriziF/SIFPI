@@ -5,11 +5,11 @@ import java.util.UUID;
 import lombok.Data;
 
 @Data
-public class AuthResponseDTO {
+public class RoleResponseDTO {
 
     private UUID id;
-    private String email;
     private String name;
-    private String role;
+    private String description;
+    private boolean status;
     private PermissionsDTO permissions;
 }
