@@ -36,6 +36,12 @@ public class Role {
     @Column(nullable = false, unique = true, length = 50)
     private String name;
 
+    @Column(nullable = false, length = 200)
+    private String description;
+
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     private List<RolePermission> permissions = new ArrayList<>();
+
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean status;
 }

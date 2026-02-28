@@ -51,9 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @SuppressWarnings("unchecked")
             Map<String, List<String>> permissions = claims.get("permissions", Map.class);
             if (permissions != null) {
-                permissions.forEach((action, resources) ->
-                        resources.stream()
-                                .map(resource -> new SimpleGrantedAuthority(resource + ":" + action))
+                permissions.forEach((resource, actions) ->
+                        actions.stream()
+                                .map(action -> new SimpleGrantedAuthority(resource + ":" + action))
                                 .forEach(authorities::add)
                 );
             }

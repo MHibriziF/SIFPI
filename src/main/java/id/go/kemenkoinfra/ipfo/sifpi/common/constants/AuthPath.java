@@ -11,6 +11,8 @@ public final class AuthPath {
     public static final String LOGIN = BASE + "/login";
     public static final String LOGOUT = BASE + "/logout";
 
+    public static final String ROLES = "/roles";
+
     public static final String[] PUBLIC = {
         API + REGISTER,
         API + LOGIN,

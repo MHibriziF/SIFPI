@@ -1,4 +1,4 @@
-package id.go.kemenkoinfra.ipfo.sifpi.auth.dto;
+package id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
