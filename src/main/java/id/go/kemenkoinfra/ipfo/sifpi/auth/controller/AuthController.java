@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.AuthResponseDTO;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.LoginRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.LoginRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.AuthService;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.AuthService.LoginResult;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;

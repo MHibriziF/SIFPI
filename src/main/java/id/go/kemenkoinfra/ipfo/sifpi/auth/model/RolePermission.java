@@ -32,11 +32,11 @@ import lombok.ToString;
     name = "role_permissions",
     uniqueConstraints = @UniqueConstraint(
         name = "uk_role_resource_action",
-        columnNames = {"role_id", "resource_id", "action"}
+        columnNames = {"role_id", "resource_name", "action"}
     ),
     indexes = {
         @Index(name = "idx_role_permission_role_id", columnList = "role_id"),
-        @Index(name = "idx_role_permission_resource_id", columnList = "resource_id")
+        @Index(name = "idx_role_permission_resource_name", columnList = "resource_name")
     }
 )
 public class RolePermission {
@@ -51,10 +51,18 @@ public class RolePermission {
     private Role role;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resource_id", nullable = false)
+    @JoinColumn(name = "resource_name", nullable = false)
     private Resource resource;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Action action;
+
+    public String getResourceName() {
+        return resource.getName();
+    }
+
+    public String getActionName() {
+        return action.name();
+    }
 }
