@@ -592,3 +592,44 @@ GET /api/projects?page=0&size=10&sort=status,asc&sort=createdAt,desc
 ```
 
 Only expose fields that are safe to sort on. If you need to restrict which fields clients can sort by, validate `pageable.getSort()` in the service before passing it to the repository.
+
+## Authorization
+
+`SecurityConfig` only distinguishes public vs. authenticated routes. Fine-grained access control is handled at the method level using `@PreAuthorize` (enabled via `@EnableMethodSecurity`).
+
+### Permission-based (granular)
+
+The JWT filter registers each role permission as a `SimpleGrantedAuthority` with the format `RESOURCE:ACTION` — e.g. `PROJECT:CREATE`, `USER:READ`. Use `hasAuthority()` to check these:
+
+```java
+@GetMapping("/{id}")
+@PreAuthorize("hasAuthority('PROJECT:READ')")
+public ResponseEntity<?> getProject(@PathVariable UUID id) { ... }
+
+@PostMapping
+@PreAuthorize("hasAuthority('PROJECT:CREATE')")
+public ResponseEntity<?> createProject(...) { ... }
+```
+
+Available resources: `PROJECT`, `USER`, `INQUIRY`, `NEWS`, `VERIFICATION`
+Available actions: `CREATE`, `READ`, `UPDATE`, `DELETE`
+
+### Role-based (coarse-grained)
+
+The JWT filter also registers a `ROLE_<roleName>` authority. Use `hasRole()` when the restriction applies to an entire role rather than a specific resource action:
+
+```java
+@PostMapping
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<?> adminOnlyEndpoint(...) { ... }
+```
+
+`hasRole('ADMIN')` is shorthand for `hasAuthority('ROLE_ADMIN')` — Spring adds the `ROLE_` prefix automatically.
+
+Available roles: `ADMIN`, `INVESTOR`, `PROJECT_OWNER`, `EXECUTIVE`
+
+### When to use which
+
+- Use `hasAuthority('RESOURCE:ACTION')` for most endpoints — it's granular and lets permissions be configured per role without code changes.
+- Use `hasRole('ROLE_NAME')` in `@PreAuthorize` only when the restriction is inherently role-specific (e.g. an admin-only management endpoint that should never be delegated).
+- For routes that must be open or locked globally (e.g. public auth endpoints, health check), configure them in `SecurityConfig.securityFilterChain()` instead — those rules apply before the method security layer.
