@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.AuthService;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public ResponseCookie logout() {
+        return jwtService.createExpiredJwtCookie();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public AuthResponseDTO getCurrentUser(String email) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email)
@@ -63,6 +69,4 @@ public class AuthServiceImpl implements AuthService {
         List<RolePermission> rolePermissions = rolePermissionRepository.findByRoleWithResource(user.getRole());
         return authMapper.toDTO(user, rolePermissions);
     }
-
-
 }

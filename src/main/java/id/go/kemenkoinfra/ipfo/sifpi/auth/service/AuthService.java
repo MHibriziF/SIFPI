@@ -9,6 +9,8 @@ public interface AuthService {
 
     LoginResult login(LoginRequest request);
 
+    ResponseCookie logout();
+
     AuthResponseDTO getCurrentUser(String email);
 
     record LoginResult(ResponseCookie cookie, AuthResponseDTO data) {}

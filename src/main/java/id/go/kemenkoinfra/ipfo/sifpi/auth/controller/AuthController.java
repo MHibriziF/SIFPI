@@ -40,6 +40,12 @@ public class AuthController {
         return responseUtil.success(result.data(), "Login berhasil.", HttpStatus.OK);
     }
 
+    @PostMapping(AuthPath.LOGOUT)
+    public ResponseEntity<BaseResponseDTO<Void>> logout(HttpServletResponse httpResponse) {
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE, authService.logout().toString());
+        return responseUtil.success(null, "Logout berhasil.", HttpStatus.OK);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<BaseResponseDTO<AuthResponseDTO>> me(Authentication authentication) {
         AuthResponseDTO dto = authService.getCurrentUser(authentication.getName());
