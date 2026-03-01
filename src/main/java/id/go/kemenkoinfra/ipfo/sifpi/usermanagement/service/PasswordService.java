@@ -66,6 +66,11 @@ public class PasswordService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new NotFoundException("User", userEmail));
 
+        // Validate password confirmation
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new SecurityException("Password baru dan konfirmasi password tidak sama");
+        }
+
         // Validate current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new SecurityException("Password saat ini tidak valid");

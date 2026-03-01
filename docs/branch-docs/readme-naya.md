@@ -1,416 +1,711 @@
-# User Management - Create Executive Account & Password Management# User Management - Create Executive Account (UM-3)# User Management - Create Executive Account
+# User Management - Documentation# User Management - Documentation
 
 
 
-**Author:** Valiza Nadya Jatikansha  
+**Author:** Valiza Nadya Jatikansha  **Author:** Valiza Nadya Jatikansha  
 
-**Date:** 1 Maret 2026  
+**Date:** 1 Maret 2026  **Date:** 1 Maret 2026  
 
-**Branch:** `dev/naya`**Author:** Valiza Nadya Jatikansha  **Author:** Naya  
-
-
-
----**Date:** 1 Maret 2026  **Date:** 28 Februari 2026  
+**Branch:** `dev/naya`**Branch:** `dev/naya`
 
 
-
-## 📋 Backlog**Branch:** `dev/naya`**Branch:** `feature/user-management`
-
-
-
-### Epic: User Management
-
-
-
-| ID | Backlog Item | Status |------
-
-|----|--------------|--------|
-
-| UM-3 | Create Executive Account (by Admin) | ✅ Done |
-
-| UM-9 | Update Password | ✅ Done |
-
-## 📋 Backlog## 📋 Backlog
-
----
-
-
-
-## 🎯 Feature 1: Create Executive Account (UM-3)
-
-### Epic: User Management### Epic: User Management
-
-### Deskripsi
-
-Admin dapat membuat akun Executive untuk pejabat tertentu melalui dashboard. Sistem akan mengirim email undangan dengan link untuk membuat password.
-
-
-
-### Flow| ID | Backlog Item | Status || Backlog Item | Status |
-
-1. Admin mengisi form create executive (email, nama, phone, jabatan)
-
-2. Sistem membuat akun dengan status inactive|----|--------------|--------||--------------|--------|
-
-3. Sistem generate token dan kirim email undangan
-
-4. Executive klik link di email → halaman set password| UM-3 | Create Executive Account (by Admin) | ✅ Done || Create Executive Account (by Admin) | ✅ Done |
-
-5. Executive membuat password → akun diaktifkan
-
-
-
-### Endpoint Create Executive
 
 ------
 
+
+
+## 📋 Backlog## 📋 Backlog
+
+
+
+| ID | Feature | Status || ID | Feature | Status |
+
+|----|---------|--------||----|---------|--------|
+
+| UM-3 | Create Executive Account (by Admin) | ✅ Done || UM-3 | Create Executive Account (by Admin) | ✅ Done |
+
+| UM-9 | Update Password | ✅ Done || UM-9 | Update Password | ✅ Done |
+
+
+
+------
+
+
+
+## 🎯 Feature 1: Create Executive Account (UM-3)## 🎯 Feature 1: Create Executive Account (UM-3)
+
+
+
+### Overview### Overview
+
+Admin dapat membuat akun Executive baru. Sistem akan mengirim email undangan dengan **link setup password** (bukan password langsung). Executive harus set password sendiri sebelum bisa login.Admin dapat membuat akun Executive baru. Sistem akan mengirim email undangan dengan **link setup password** (bukan password langsung). Executive harus set password sendiri sebelum bisa login.
+
+
+
+### Flow### Flow
+
+1. Admin create executive → Akun dibuat dengan status **inactive**1. Admin create executive → Akun dibuat dengan status **inactive**
+
+2. Sistem generate **setup token** (24 jam) → Kirim email dengan link2. Sistem generate **setup token** (24 jam) → Kirim email dengan link
+
+3. Executive klik link → Halaman set password3. Executive klik link → Halaman set password
+
+4. Executive set password → Akun jadi **active** → Bisa login4. Executive set password → Akun jadi **active** → Bisa login
+
+
+
+### API Endpoint### API Endpoint
+
+
+
+#### Create Executive (Admin Only)#### Create Executive (Admin Only)
+
+```http```http
+
+POST /api/registerPOST /api/register
+
+Authorization: JWT Cookie (Role: ADMIN)Authorization: JWT Cookie (Role: ADMIN)
+
+Content-Type: application/jsonContent-Type: application/json
+
+
+
+{{
+
+  "email": "executive@example.com",  "email": "executive@example.com",
+
+  "nama": "John Doe",  "nama": "John Doe",
+
+  "phone": "081234567890",  "phone": "081234567890",
+
+  "jabatan": "Direktur Utama"  "jabatan": "Direktur Utama"
+
+}}- **I WANT TO** Membuat akun Executive untuk pejabat tertentu melalui dashboard```
+
 ```
 
-POST /api/register
 
-```
 
-## 🎯 Feature: Create Executive Account## 🎯 Feature: Create Executive Account
+**Response: 201 Created**
 
-### Authorization
-
-- **Role Required:** `ADMIN`
-
-- Menggunakan JWT Cookie authentication
-
-### Deskripsi### Deskripsi
-
-### Request Body
-
-Admin dapat membuat akun Executive untuk pejabat tertentu melalui dashboard. Executive dapat mengakses dashboard insight untuk mendukung pengambilan kebijakan.Admin dapat membuat akun Executive baru. Password di-generate otomatis dan dikirim ke email Executive melalui SendGrid.
-
-```json
+```json| Field | Type | Required | Validation |- **SO THAT** Executive dapat mengakses dashboard insight untuk mendukung pengambilan kebijakanPOST /api/admin/users/executive
 
 {
 
-  "email": "executive@example.com",
+  "status": "success",|-------|------|----------|------------|
 
-  "nama": "John Doe",### User Story### Endpoint
+  "message": "Executive berhasil dibuat. Email undangan telah dikirim.",
 
-  "phone": "081234567890",
+  "data": {| `email` | string | ✅ | Format email valid |```
 
-  "jabatan": "Direktur Utama"- **AS** Admin
+    "id": "uuid",
+
+    "email": "executive@example.com",| `nama` | string | ✅ | 2-100 karakter |
+
+    "nama": "John Doe",
+
+    "phone": "081234567890",| `phone` | string | ✅ | 10-15 karakter |### Endpoint
+
+    "jabatan": "Direktur Utama",
+
+    "roleName": "EXECUTIVE",| `jabatan` | string | ✅ | Max 100 karakter |
+
+    "active": false
+
+  }### Authorization
 
 }
 
-```- **I WANT TO** Membuat akun Executive untuk pejabat tertentu melalui dashboard```
+```### Response
 
 
 
-| Field | Type | Required | Validation |- **SO THAT** Executive dapat mengakses dashboard insight untuk mendukung pengambilan kebijakanPOST /api/admin/users/executive
+**Error Responses:**```- **Role Required:** `ADMIN`
 
-|-------|------|----------|------------|
+- `400` - Validation error (email format salah, field kosong)
 
-| `email` | string | ✅ | Format email valid |```
+- `401` - Unauthorized (tidak ada cookie)**201 Created**
 
-| `nama` | string | ✅ | 2-100 karakter |
+- `403` - Forbidden (bukan role ADMIN)
 
-| `phone` | string | ✅ | 10-15 karakter |### Endpoint
+- `409` - Conflict (email sudah terdaftar)```jsonPOST /api/admin/users/executive- Menggunakan JWT Cookie authentication
 
-| `jabatan` | string | ✅ | Max 100 karakter |
 
-### Authorization
 
-### Response
+---{
 
-```- **Role Required:** `ADMIN`
 
-**201 Created**
 
-```jsonPOST /api/admin/users/executive- Menggunakan JWT Cookie authentication
+## 🎯 Feature 2: Set Password (First Time)  "status": 201,```
 
-{
 
-  "status": 201,```
 
-  "message": "Akun Executive berhasil dibuat.",
+### Overview  "message": "Akun Executive berhasil dibuat.",
+
+Executive yang baru dibuat menggunakan **token dari email** untuk set password pertama kali. Endpoint ini **PUBLIC** (tidak perlu login).
 
   "timestamp": "2026-03-01T10:30:00.000+07:00",### Request Body
 
-  "data": {
+### Cara Ambil Token dari Database
 
-    "id": "uuid",### Authorization
+Setelah create executive, ambil token dengan command:  "data": {
+
+```bash
+
+docker exec -it propen-a-backend-sifpi-app-db-1 psql -U sifpi-dev -d sifpi-dev -c "SELECT email, password_setup_token FROM users WHERE email = 'executive@example.com';"    "id": "uuid",### Authorization
+
+```
 
     "email": "executive@example.com",
 
+Copy token dari kolom `password_setup_token`.
+
     "name": "John Doe",- **Role Required:** `admin````json
+
+### API Endpoint
 
     "phone": "081234567890",
 
-    "jabatan": "Direktur Utama",- Menggunakan JWT Cookie authentication{
+#### Set Password (Public)
 
-    "roleName": "EXECUTIVE",
+```http    "jabatan": "Direktur Utama",- Menggunakan JWT Cookie authentication{
 
-    "active": false,  "email": "executive@example.com",
+POST /api/auth/set-password
 
-    "verified": false
+Content-Type: application/json    "roleName": "EXECUTIVE",
 
-  }### Request Body  "nama": "John Doe",
+
+
+{    "active": false,  "email": "executive@example.com",
+
+  "token": "1336eb780c84448ca2fd3c68bfe4858e",
+
+  "password": "MySecurePassword123!",    "verified": false
+
+  "confirmPassword": "MySecurePassword123!"
+
+}  }### Request Body  "nama": "John Doe",
+
+```
 
 }
 
-```  "phone": "081234567890",
+**Response: 200 OK**
 
+```json```  "phone": "081234567890",
 
+{
 
-**Error Responses**```json  "jabatan": "Direktur Utama"
+  "status": "success",
+
+  "message": "Password berhasil diatur. Silakan login."
+
+}**Error Responses**```json  "jabatan": "Direktur Utama"
+
+```
 
 | Status | Message |
 
-|--------|---------|{}
+**Error Responses:**
 
-| 400 | Validation error |
+- `400` - Password dan confirmPassword tidak sama|--------|---------|{}
 
-| 401 | Unauthorized |  "email": "executive@example.com",```
+- `404` - Token tidak valid atau sudah digunakan
 
-| 403 | Forbidden (bukan ADMIN) |
-
-| 409 | Email sudah terdaftar |  "nama": "John Doe",
+- `401` - Token sudah kedaluwarsa (>24 jam)| 400 | Validation error |
 
 
+
+---| 401 | Unauthorized |  "email": "executive@example.com",```
+
+
+
+## 🎯 Feature 3: Update Password (UM-9)| 403 | Forbidden (bukan ADMIN) |
+
+
+
+### Overview| 409 | Email sudah terdaftar |  "nama": "John Doe",
+
+User yang **sudah login** (Admin/Executive) dapat mengubah password mereka. Harus memasukkan password lama untuk validasi.
+
+
+
+### API Endpoint
 
 ---  "phone": "081234567890",| Field | Type | Required | Validation |
 
+#### Update Password (Authenticated)
 
-
-## 🎯 Feature 2: Set Password (First Time)  "jabatan": "Direktur Utama"|-------|------|----------|------------|
-
-
-
-### Deskripsi}| `email` | string | ✅ | Format email valid |
-
-Executive yang baru dibuat dapat membuat password pertama kali melalui link dari email.
-
-```| `nama` | string | ✅ | 2-100 karakter |
-
-### Endpoint
-
-| `phone` | string | ✅ | 10-15 karakter |
-
-```
-
-POST /api/auth/set-password| Field | Type | Required | Validation || `jabatan` | string | ✅ | Max 100 karakter |
-
-```
-
-|-------|------|----------|------------|
-
-### Authorization
-
-- **Public** - Tidak perlu authentication| `email` | string | ✅ | Format email valid |### Response
-
-
-
-### Request Body| `nama` | string | ✅ | 2-100 karakter |
-
-
-
-```json| `phone` | string | ✅ | 10-20 karakter |**201 Created**
-
-{
-
-  "token": "abc123...",| `jabatan` | string | ✅ | Max 100 karakter |```json
-
-  "password": "MySecurePassword123!",
-
-  "confirmPassword": "MySecurePassword123!"{
-
-}
-
-```### Response  "status": 201,
-
-
-
-| Field | Type | Required | Validation |  "message": "Akun Executive berhasil dibuat.",
-
-|-------|------|----------|------------|
-
-| `token` | string | ✅ | Token dari email |**201 Created**  "timestamp": "2026-02-28T10:30:00.000+07:00",
-
-| `password` | string | ✅ | Min 8 karakter |
-
-| `confirmPassword` | string | ✅ | Harus sama dengan password |```json  "data": {
-
-
-
-### Response{    "id": "550e8400-e29b-41d4-a716-446655440000",
-
-
-
-**200 OK**  "status": 201,    "email": "executive@example.com",
-
-```json
-
-{  "message": "Akun Executive berhasil dibuat.",    "name": "John Doe",
-
-  "status": 200,
-
-  "message": "Password berhasil dibuat. Silakan login.",  "timestamp": "2026-03-01T10:30:00.000+07:00",    "phone": "081234567890",
-
-  "timestamp": "2026-03-01T10:35:00.000+07:00",
-
-  "data": null  "data": {    "jabatan": "Direktur Utama",
-
-}
-
-```    "id": "550e8400-e29b-41d4-a716-446655440000",    "role": "EXECUTIVE",
-
-
-
-**Error Responses**    "email": "executive@example.com",    "isVerified": true,
-
-| Status | Message |
-
-|--------|---------|    "name": "John Doe",    "emailVerified": true,
-
-| 400 | Validation error |
-
-| 401 | Token tidak valid / sudah kedaluwarsa |    "phone": "081234567890",    "isActive": true,
-
-| 404 | Token tidak ditemukan |
-
-    "jabatan": "Direktur Utama",    "createdAt": "2026-02-28T10:30:00",
-
----
-
-    "roleName": "executive",    "updatedAt": "2026-02-28T10:30:00"
-
-## 🎯 Feature 3: Update Password (UM-9)
-
-    "isVerified": true,  }
-
-### Deskripsi
-
-User yang sudah login dapat mengubah password untuk menjaga keamanan akun.    "emailVerified": true,}
-
-
-
-### Endpoint    "isActive": true,```
-
-
-
-```    "createdAt": "2026-03-01T10:30:00",
+```http
 
 PATCH /api/users/password
 
-```    "updatedAt": "2026-03-01T10:30:00"**409 Conflict** (Email sudah terdaftar)
+Authorization: JWT Cookie (Any logged-in user)## 🎯 Feature 2: Set Password (First Time)  "jabatan": "Direktur Utama"|-------|------|----------|------------|
+
+Content-Type: application/json
 
 
-
-### Authorization  }```json
-
-- **Authenticated** - Perlu login (JWT Cookie)
-
-}{
-
-### Request Body
-
-```  "status": 409,
-
-```json
-
-{  "message": "User dengan email 'executive@example.com' sudah terdaftar.",
-
-  "currentPassword": "OldPassword123!",
-
-  "newPassword": "NewSecurePassword456!"**409 Conflict** (Email sudah terdaftar)  "timestamp": "2026-02-28T10:30:00.000+07:00",
-
-}
-
-``````json  "data": null
-
-
-
-| Field | Type | Required | Validation |{}
-
-|-------|------|----------|------------|
-
-| `currentPassword` | string | ✅ | Password saat ini |  "status": 409,```
-
-| `newPassword` | string | ✅ | Min 8 karakter, tidak boleh sama dengan current |
-
-  "message": "User dengan email 'executive@example.com' sudah terdaftar.",
-
-### Response
-
-  "timestamp": "2026-03-01T10:30:00.000+07:00",**400 Bad Request** (Validasi gagal)
-
-**200 OK**
-
-```json  "data": null```json
 
 {
 
-  "status": 200,}{
+  "currentPassword": "OldPassword123!",### Deskripsi}| `email` | string | ✅ | Format email valid |
 
-  "message": "Password berhasil diubah.",
+  "newPassword": "NewPassword456!",
 
-  "timestamp": "2026-03-01T10:40:00.000+07:00",```  "status": 400,
+  "confirmPassword": "NewPassword456!"Executive yang baru dibuat dapat membuat password pertama kali melalui link dari email.
 
-  "data": null
+}
 
-}  "message": "Permintaan tidak valid: email: Format email tidak valid",
+``````| `nama` | string | ✅ | 2-100 karakter |
+
+
+
+**Response: 200 OK**### Endpoint
+
+```json
+
+{| `phone` | string | ✅ | 10-15 karakter |
+
+  "status": "success",
+
+  "message": "Password berhasil diubah"```
+
+}
+
+```POST /api/auth/set-password| Field | Type | Required | Validation || `jabatan` | string | ✅ | Max 100 karakter |
+
+
+
+**Error Responses:**```
+
+- `400` - Password dan confirmPassword tidak sama
+
+- `401` - Password saat ini tidak valid|-------|------|----------|------------|
+
+- `401` - Password baru tidak boleh sama dengan password saat ini
+
+### Authorization
+
+---
+
+- **Public** - Tidak perlu authentication| `email` | string | ✅ | Format email valid |### Response
+
+## 📧 Email Template
+
+
+
+Executive akan menerima email dengan:
+
+- Subject: "Undangan Bergabung ke SIFPI"### Request Body| `nama` | string | ✅ | 2-100 karakter |
+
+- Button "Buat Password" yang mengarah ke: `{APP_LOGIN_URL}/set-password?token={token}`
+
+- Informasi bahwa link valid selama **24 jam**
+
+
+
+Email dikirim via **SendGrid API** dari `noreply@mhibrizif.site`.```json| `phone` | string | ✅ | 10-20 karakter |**201 Created**
+
+
+
+---{
+
+
+
+## 📁 Files Created/Modified  "token": "abc123...",| `jabatan` | string | ✅ | Max 100 karakter |```json
+
+
+
+### New Files  "password": "MySecurePassword123!",
+
+
+
+| File | Location | Description |  "confirmPassword": "MySecurePassword123!"{
+
+|------|----------|-------------|
+
+| `PasswordController.java` | `usermanagement/controller/` | REST endpoints untuk set & update password |}
+
+| `SetPasswordRequest.java` | `usermanagement/dto/` | DTO untuk set password (token, password, confirmPassword) |
+
+| `UpdatePasswordRequest.java` | `usermanagement/dto/` | DTO untuk update password (UM-9) |```### Response  "status": 201,
+
+| `PasswordService.java` | `usermanagement/service/` | Business logic untuk password management |
+
+| `AdminUserController.java` | `usermanagement/controller/` | `POST /api/register` dengan `@PreAuthorize("hasRole('ADMIN')")` |
+
+| `CreateExecutiveRequest.java` | `usermanagement/dto/` | Request DTO dengan validasi |
+
+| `ExecutiveDTO.java` | `usermanagement/dto/` | Response DTO || Field | Type | Required | Validation |  "message": "Akun Executive berhasil dibuat.",
+
+| `ExecutiveMapper.java` | `usermanagement/mapper/` | MapStruct mapper |
+
+| `ExecutiveService.java` | `usermanagement/service/` | Business logic: generate token, send email ||-------|------|----------|------------|
+
+| `EmailService.java` | `common/services/` | SendGrid API integration |
+
+| `token` | string | ✅ | Token dari email |**201 Created**  "timestamp": "2026-02-28T10:30:00.000+07:00",
+
+### Modified Files
+
+| `password` | string | ✅ | Min 8 karakter |
+
+| File | Changes |
+
+|------|---------|| `confirmPassword` | string | ✅ | Harus sama dengan password |```json  "data": {
+
+| `User.java` | Added: `passwordSetupToken`, `passwordSetupTokenExpiry` |
+
+| `UserRepository.java` | Added: `findByEmail()`, `findByPasswordSetupToken()` |
+
+| `AuthPath.java` | Added: `SET_PASSWORD` to `PUBLIC` paths |
+
+| `GlobalExceptionHandler.java` | Handler `SecurityException` return 401 |### Response{    "id": "550e8400-e29b-41d4-a716-446655440000",
+
+| `application.yaml` | Added SendGrid email config |
+
+| `.env` | Added: `SENDGRID_API_KEY`, `EMAIL_FROM_ADDRESS`, `APP_LOGIN_URL` |
+
+
+
+---**200 OK**  "status": 201,    "email": "executive@example.com",
+
+
+
+## ⚙️ Environment Variables```json
+
+
+
+```bash{  "message": "Akun Executive berhasil dibuat.",    "name": "John Doe",
+
+# SendGrid Email Configuration
+
+SENDGRID_API_KEY=SG.xxx  "status": 200,
+
+EMAIL_FROM_ADDRESS=noreply@mhibrizif.site
+
+EMAIL_FROM_NAME=SIFPI  "message": "Password berhasil dibuat. Silakan login.",  "timestamp": "2026-03-01T10:30:00.000+07:00",    "phone": "081234567890",
+
+APP_LOGIN_URL=http://localhost:3000/login
+
+```  "timestamp": "2026-03-01T10:35:00.000+07:00",
+
+
+
+---  "data": null  "data": {    "jabatan": "Direktur Utama",
+
+
+
+## 🧪 Testing Guide}
+
+
+
+### Test 1: Create Executive & Set Password```    "id": "550e8400-e29b-41d4-a716-446655440000",    "role": "EXECUTIVE",
+
+
+
+**1. Login sebagai Admin**
+
+```http
+
+POST http://localhost:8080/api/auth/login**Error Responses**    "email": "executive@example.com",    "isVerified": true,
+
+{
+
+  "email": "admin@sifpi.go.id",| Status | Message |
+
+  "password": "admin123"
+
+}|--------|---------|    "name": "John Doe",    "emailVerified": true,
 
 ```
 
-**400 Bad Request** (Validasi gagal)  "timestamp": "2026-02-28T10:30:00.000+07:00",
+| 400 | Validation error |
 
-**Error Responses**
+**2. Create Executive**
 
-| Status | Message |```json  "data": null
+```http| 401 | Token tidak valid / sudah kedaluwarsa |    "phone": "081234567890",    "isActive": true,
 
-|--------|---------|
+POST http://localhost:8080/api/register
 
-| 400 | Validation error |{}
+Cookie: SIFPI_TOKEN (otomatis dari login)| 404 | Token tidak ditemukan |
 
-| 401 | Password saat ini tidak valid |
+{
 
-| 401 | Password baru tidak boleh sama dengan password saat ini |  "status": 400,```
+  "email": "test.executive@example.com",    "jabatan": "Direktur Utama",    "createdAt": "2026-02-28T10:30:00",
+
+  "nama": "Test Executive",
+
+  "phone": "081234567890",---
+
+  "jabatan": "Direktur Keuangan"
+
+}    "roleName": "executive",    "updatedAt": "2026-02-28T10:30:00"
+
+```
+
+## 🎯 Feature 3: Update Password (UM-9)
+
+**3. Ambil Token dari Database**
+
+```bash    "isVerified": true,  }
+
+docker exec -it propen-a-backend-sifpi-app-db-1 psql -U sifpi-dev -d sifpi-dev -c "SELECT email, password_setup_token FROM users WHERE email = 'test.executive@example.com';"
+
+```### Deskripsi
+
+Copy token yang muncul.
+
+User yang sudah login dapat mengubah password untuk menjaga keamanan akun.    "emailVerified": true,}
+
+**4. Set Password (Public, Tidak Perlu Login)**
+
+```http
+
+POST http://localhost:8080/api/auth/set-password
+
+{### Endpoint    "isActive": true,```
+
+  "token": "PASTE_TOKEN_DI_SINI",
+
+  "password": "executive123",
+
+  "confirmPassword": "executive123"
+
+}```    "createdAt": "2026-03-01T10:30:00",
+
+```
+
+PATCH /api/users/password
+
+**5. Login sebagai Executive**
+
+```http```    "updatedAt": "2026-03-01T10:30:00"**409 Conflict** (Email sudah terdaftar)
+
+POST http://localhost:8080/api/auth/login
+
+{
+
+  "email": "test.executive@example.com",
+
+  "password": "executive123"### Authorization  }```json
+
+}
+
+```- **Authenticated** - Perlu login (JWT Cookie)
 
 
 
----  "message": "Permintaan tidak valid: email: Format email tidak valid",
+---}{
 
 
 
-## 📁 Files Created/Modified  "timestamp": "2026-03-01T10:30:00.000+07:00",**403 Forbidden** (Bukan Admin)
+### Test 2: Update Password### Request Body
 
 
 
-### New Files  "data": null```json
+**1. Login dulu (Admin atau Executive)**```  "status": 409,
+
+
+
+**2. Update Password**```json
+
+```http
+
+PATCH http://localhost:8080/api/users/password{  "message": "User dengan email 'executive@example.com' sudah terdaftar.",
+
+Cookie: SIFPI_TOKEN (otomatis dari login)
+
+{  "currentPassword": "OldPassword123!",
+
+  "currentPassword": "admin123",
+
+  "newPassword": "newadmin456",  "newPassword": "NewSecurePassword456!"**409 Conflict** (Email sudah terdaftar)  "timestamp": "2026-02-28T10:30:00.000+07:00",
+
+  "confirmPassword": "newadmin456"
+
+}}
+
+```
+
+``````json  "data": null
+
+**3. Logout & Login dengan Password Baru**
+
+
+
+---
+
+| Field | Type | Required | Validation |{}
+
+### Error Test Cases
+
+|-------|------|----------|------------|
+
+| Test Case | Expected Result |
+
+|-----------|-----------------|| `currentPassword` | string | ✅ | Password saat ini |  "status": 409,```
+
+| Set password dengan token invalid | 404 Not Found |
+
+| Set password dengan token expired | 401 Unauthorized || `newPassword` | string | ✅ | Min 8 karakter, tidak boleh sama dengan current |
+
+| Update password dengan currentPassword salah | 401 Unauthorized |
+
+| Update password dengan confirmPassword tidak sama | 401 Unauthorized |  "message": "User dengan email 'executive@example.com' sudah terdaftar.",
+
+| Update password dengan newPassword = currentPassword | 401 Unauthorized |
+
+| Create executive tanpa login | 401 Unauthorized |### Response
+
+| Create executive dengan role bukan ADMIN | 403 Forbidden |
+
+| Create executive dengan email sudah ada | 409 Conflict |  "timestamp": "2026-03-01T10:30:00.000+07:00",**400 Bad Request** (Validasi gagal)
+
+
+
+---**200 OK**
+
+
+
+## 🔄 Flow Diagram```json  "data": null```json
+
+
+
+```{
+
+┌─────────────────┐
+
+│  POST /api/     │  "status": 200,}{
+
+│  register       │
+
+│  (ADMIN Only)   │  "message": "Password berhasil diubah.",
+
+└────────┬────────┘
+
+         │  "timestamp": "2026-03-01T10:40:00.000+07:00",```  "status": 400,
+
+         ▼
+
+┌─────────────────────────────────┐  "data": null
+
+│  ExecutiveService               │
+
+│  ├── Check email exists? → 409  │}  "message": "Permintaan tidak valid: email: Format email tidak valid",
+
+│  ├── Get role 'EXECUTIVE'       │
+
+│  ├── Generate setup token (UUID)│```
+
+│  ├── Set token expiry (+24h)    │
+
+│  ├── Set user inactive          │**400 Bad Request** (Validasi gagal)  "timestamp": "2026-02-28T10:30:00.000+07:00",
+
+│  ├── Save to DB                 │
+
+│  └── Send email async           │**Error Responses**
+
+└────────┬────────────────────────┘
+
+         │| Status | Message |```json  "data": null
+
+         ▼
+
+┌─────────────────┐|--------|---------|
+
+│  Email sent     │
+
+│  with token     │| 400 | Validation error |{}
+
+└────────┬────────┘
+
+         │| 401 | Password saat ini tidak valid |
+
+         ▼
+
+┌─────────────────────────────────┐| 401 | Password baru tidak boleh sama dengan password saat ini |  "status": 400,```
+
+│  POST /api/auth/set-password    │
+
+│  (PUBLIC)                       │
+
+│  ├── Validate token             │
+
+│  ├── Check expiry               │---  "message": "Permintaan tidak valid: email: Format email tidak valid",
+
+│  ├── Hash password              │
+
+│  ├── Clear token                │
+
+│  ├── Activate user              │
+
+│  └── Return success             │## 📁 Files Created/Modified  "timestamp": "2026-03-01T10:30:00.000+07:00",**403 Forbidden** (Bukan Admin)
+
+└────────┬────────────────────────┘
+
+         │
+
+         ▼
+
+┌─────────────────┐### New Files  "data": null```json
+
+│  User can login │
+
+└─────────────────┘```
 
 ```
 
 src/main/java/id/go/kemenkoinfra/ipfo/sifpi/}{
 
+---
+
 ├── usermanagement/
+
+## 📝 Notes
 
 │   ├── controller/```  "status": 403,
 
-│   │   ├── AdminUserController.java      # POST /api/register
+- **Token validity:** 24 hours
 
-│   │   └── PasswordController.java       # POST /api/auth/set-password, PATCH /api/users/password  "message": "Access Denied",
+- **Password minimum length:** 8 characters│   │   ├── AdminUserController.java      # POST /api/register
 
-│   ├── dto/
+- **Email service:** SendGrid REST API
 
-│   │   ├── CreateExecutiveRequest.java**403 Forbidden** (Bukan Admin)  "timestamp": "2026-02-28T10:30:00.000+07:00",
+- **Authentication:** JWT Cookie (`SIFPI_TOKEN`)│   │   └── PasswordController.java       # POST /api/auth/set-password, PATCH /api/users/password  "message": "Access Denied",
 
-│   │   ├── ExecutiveDTO.java
+- **Password hashing:** BCrypt
 
-│   │   ├── SetPasswordRequest.java       # NEW```json  "data": null
+- **Token format:** UUID v4 (32 characters hex)│   ├── dto/
 
-│   │   └── UpdatePasswordRequest.java    # NEW (UM-9)
 
-│   ├── mapper/{}
 
-│   │   └── ExecutiveMapper.java
+---│   │   ├── CreateExecutiveRequest.java**403 Forbidden** (Bukan Admin)  "timestamp": "2026-02-28T10:30:00.000+07:00",
 
-│   └── service/  "status": 403,```
+
+
+## 🚀 Next Steps│   │   ├── ExecutiveDTO.java
+
+
+
+- [ ] Add email verification flow│   │   ├── SetPasswordRequest.java       # NEW```json  "data": null
+
+- [ ] Add password strength validation (uppercase, number, special char)
+
+- [ ] Add rate limiting for password attempts│   │   └── UpdatePasswordRequest.java    # NEW (UM-9)
+
+- [ ] Add password history (prevent reusing old passwords)
+
+- [ ] Add "Forgot Password" feature│   ├── mapper/{}
+
+
+
+---│   │   └── ExecutiveMapper.java
+
+
+
+**Last Updated:** 1 Maret 2026│   └── service/  "status": 403,```
+
 
 │       ├── ExecutiveService.java
 
