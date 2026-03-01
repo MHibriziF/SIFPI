@@ -16,6 +16,12 @@ spring:
   profiles:
     active:
       - dev
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  jackson:
+    mapper:
+      accept-case-insensitive-enums: true
   jpa:
     open-in-view: false
 
