@@ -8,11 +8,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateRoleRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.UpdateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.constants.AuthPath;
@@ -43,5 +45,15 @@ public class RoleController {
     public ResponseEntity<BaseResponseDTO<RoleResponseDTO>> getRoleById(@PathVariable UUID id) {
         RoleResponseDTO dto = roleService.getRoleById(id);
         return responseUtil.success(dto, "Detail role berhasil diambil.", HttpStatus.OK);
+    }
+
+    @PutMapping(AuthPath.ROLES + "/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponseDTO<RoleResponseDTO>> updateRole(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateRoleRequest request) {
+
+        RoleResponseDTO dto = roleService.updateRole(id, request);
+        return responseUtil.success(dto, "Role berhasil diperbarui.", HttpStatus.OK);
     }
 }

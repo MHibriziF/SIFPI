@@ -5,22 +5,27 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.PermissionRequest;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.UpdateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RoleMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Resource;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RoleAuditLog;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RolePermission;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ResourceRepository;
-import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Action;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleAuditLogRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RolePermissionRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Action;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +35,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class RoleServiceImpl implements RoleService {
 
+    private static final String ACTION_UPDATE = "UPDATE";
+
     private final RoleRepository roleRepository;
     private final ResourceRepository resourceRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final RoleAuditLogRepository roleAuditLogRepository;
     private final RoleMapper roleMapper;
 
     @Override
@@ -88,5 +96,69 @@ public class RoleServiceImpl implements RoleService {
         List<RolePermission> permissions = rolePermissionRepository.findByRoleWithResource(role);
         log.info("Role detail fetched: id={}", id);
         return roleMapper.toDTO(role, permissions);
+    }
+
+    @Override
+    @Transactional
+    public RoleResponseDTO updateRole(UUID id, UpdateRoleRequest request) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Role", id));
+
+        // Validate name uniqueness if name is being changed
+        if (request.getName() != null && !request.getName().equals(role.getName())) {
+            roleRepository.findByName(request.getName()).ifPresent(existing -> {
+                throw new IllegalStateException("Role dengan nama '" + request.getName() + "' sudah ada.");
+            });
+        }
+
+        // Capture before state for audit trail
+        List<RolePermission> oldPermissions = rolePermissionRepository.findByRoleWithResource(role);
+        String before = buildSnapshot(role, oldPermissions);
+
+        // Patch scalar fields (null-safe via MapStruct IGNORE strategy)
+        roleMapper.updateEntity(request, role);
+        roleRepository.save(role);
+
+        // Replace permissions only if the request explicitly provides the field
+        List<RolePermission> newPermissions;
+        if (request.getPermissions() != null) {
+            rolePermissionRepository.deleteByRole(role);
+            newPermissions = buildPermissions(role, request.getPermissions());
+            rolePermissionRepository.saveAll(newPermissions);
+        } else {
+            newPermissions = rolePermissionRepository.findByRoleWithResource(role);
+        }
+
+        // Capture after state and persist audit log
+        String after = buildSnapshot(role, newPermissions);
+        String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+        saveAuditLog(role, ACTION_UPDATE, actor, buildChangeDetails(before, after));
+
+        log.info("Role '{}' berhasil diperbarui oleh '{}'.", role.getName(), actor);
+        return roleMapper.toDTO(role, newPermissions);
+    }
+
+    private void saveAuditLog(Role role, String action, String changedBy, String details) {
+        roleAuditLogRepository.save(RoleAuditLog.builder()
+                .role(role)
+                .action(action)
+                .changedBy(changedBy)
+                .details(details)
+                .build());
+    }
+
+    private String buildSnapshot(Role role, List<RolePermission> permissions) {
+        String perms = permissions.stream()
+                .map(rp -> rp.getResourceName() + ":" + rp.getActionName())
+                .sorted()
+                .collect(Collectors.joining(", "));
+        return "name=" + role.getName()
+                + ", description=" + role.getDescription()
+                + ", status=" + role.isStatus()
+                + ", permissions=[" + perms + "]";
+    }
+
+    private String buildChangeDetails(String before, String after) {
+        return "BEFORE: {" + before + "} | AFTER: {" + after + "}";
     }
 }
