@@ -45,4 +45,7 @@ public class AuthController {
         AuthResponseDTO dto = authService.getCurrentUser(authentication.getName());
         return responseUtil.success(dto, "Berhasil.", HttpStatus.OK);
     }
+
+    @GetMapping("/csrf")
+    public ResponseEntity<?> csrf() {return ResponseEntity.ok().build();}
 }
