@@ -49,6 +49,7 @@ public class DataSeeder {
             seedResources();
             seedAdminPermissions();
             seedAdmin();
+            seedUsers();
         };
     }
 
@@ -114,5 +115,43 @@ public class DataSeeder {
 
         userRepository.save(admin);
         log.info("User admin default dibuat: admin@sifpi.go.id");
+    }
+
+    private void seedUsers() {
+        if (!userRepository.existsByEmail("projectowner@sifpi.go.id")) {
+            User projectOwner = new User();
+            projectOwner.setEmail("projectowner@sifpi.go.id");
+            projectOwner.setPassword(passwordEncoder.encode("projectowner123"));
+            projectOwner.setName("Project Owner");
+            projectOwner.setRole(roleRepository.findByName("PROJECT_OWNER")
+                    .orElseThrow(() -> new IllegalStateException("Role PROJECT_OWNER belum ada.")));
+
+            userRepository.save(projectOwner);
+            log.info("User project owner default dibuat: projectowner@sifpi.go.id");
+        }
+
+        if (!userRepository.existsByEmail("executive@sifpi.go.id")) {
+            User executive = new User();
+            executive.setEmail("executive@sifpi.go.id");
+            executive.setPassword(passwordEncoder.encode("executive123"));
+            executive.setName("Executive");
+            executive.setRole(roleRepository.findByName("EXECUTIVE")
+                    .orElseThrow(() -> new IllegalStateException("Role EXECUTIVE belum ada.")));
+
+            userRepository.save(executive);
+            log.info("User executive default dibuat: executive@sifpi.go.id");
+        }
+
+        if (!userRepository.existsByEmail("investor@pt.com")) {
+            User investor = new User();
+            investor.setEmail("investor@pt.com");
+            investor.setPassword(passwordEncoder.encode("investor123"));
+            investor.setName("Investor");
+            investor.setRole(roleRepository.findByName("INVESTOR")
+                    .orElseThrow(() -> new IllegalStateException("Role INVESTOR belum ada.")));
+
+            userRepository.save(investor);
+            log.info("User investor default dibuat: investor@pt.com");
+        }
     }
 }
