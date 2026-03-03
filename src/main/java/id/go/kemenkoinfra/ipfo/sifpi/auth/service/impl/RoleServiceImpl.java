@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
 import org.springframework.stereotype.Service;
@@ -76,5 +77,16 @@ public class RoleServiceImpl implements RoleService {
         }
 
         return permissions;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RoleResponseDTO getRoleById(UUID id) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Role", id));
+
+        List<RolePermission> permissions = rolePermissionRepository.findByRoleWithResource(role);
+        log.info("Role detail fetched: id={}", id);
+        return roleMapper.toDTO(role, permissions);
     }
 }
