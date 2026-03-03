@@ -51,6 +51,18 @@ public class User {
     @Column(nullable = false, length = 255)
     private String name;
 
+    @Column(length = 255)
+    private String organisasi;
+
+    @Column(length = 20)
+    private String phone;
+
+    @Column(nullable = false)
+    private Boolean isVerified = false;
+
+    @Column(nullable = false)
+    private Boolean isActive = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
