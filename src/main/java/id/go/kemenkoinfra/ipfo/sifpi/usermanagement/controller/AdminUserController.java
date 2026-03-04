@@ -19,12 +19,12 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-public class AdminUserController {
+public class  AdminUserController {
 
     private final ExecutiveService executiveService;
     private final ResponseUtil responseUtil;
 
-    @PostMapping("/register")
+    @PostMapping("/register/executive")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponseDTO<ExecutiveDTO>> createExecutive(
             @Valid @RequestBody CreateExecutiveRequest request) {
