@@ -7,10 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.model.UserToken;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserTokenRepository;
-import id.go.kemenkoinfra.ipfo.sifpi.common.enums.TokenType;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.SecurityException;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.SetPasswordRequest;
@@ -25,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 public class PasswordServiceImpl implements PasswordService {
 
     private final UserRepository userRepository;
-    private final UserTokenRepository userTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -39,22 +35,27 @@ public class PasswordServiceImpl implements PasswordService {
             throw new SecurityException("Password dan konfirmasi password tidak sama");
         }
 
-        // Find token
-        UserToken userToken = userTokenRepository.findByTokenAndType(request.getToken(), TokenType.PASSWORD_SETUP)
+        // Find user by token
+        User user = userRepository.findByPasswordSetupToken(request.getToken())
                 .orElseThrow(() -> new NotFoundException("Token tidak valid atau sudah digunakan"));
 
         // Check if token is expired
-        if (userToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (user.getPasswordSetupTokenExpiry() == null || 
+            user.getPasswordSetupTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new SecurityException("Token sudah kedaluwarsa. Silakan hubungi Administrator untuk mengirim ulang undangan.");
         }
 
-        // Set password and activate account
-        User user = userToken.getUser();
+        // Set password
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        
+        // Clear token and activate account
+        user.setPasswordSetupToken(null);
+        user.setPasswordSetupTokenExpiry(null);
+        user.setVerified(true);
         user.setEmailVerified(true);
         user.setActive(true);
+
         userRepository.save(user);
-        userTokenRepository.delete(userToken);
         log.info("Password set successfully for user: {}", user.getEmail());
     }
 
