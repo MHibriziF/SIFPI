@@ -1,7 +1,6 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.services;
 
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -26,12 +25,21 @@ public class EmailServiceImpl implements EmailService {
 
     /**
      * Send invitation email to new executive with password setup link.
+     * NOTE: Synchronous (removed @Async) to allow transaction rollback on email failure.
      */
     @Override
-    @Async
     public void sendExecutiveInvitation(String toEmail, String name, String setupToken) {
         String subject = "Undangan Akun Executive - SIFPI";
         String htmlContent = buildExecutiveInvitationEmail(name, toEmail, setupToken);
+
+        // Log token untuk development/testing
+        log.warn("=".repeat(80));
+        log.warn("EMAIL INVITATION - TOKEN FOR TESTING");
+        log.warn("To: {}", toEmail);
+        log.warn("Name: {}", name);
+        log.warn("Token: {}", setupToken);
+        log.warn("Setup URL: {}/set-password?token={}", emailProperties.getLoginUrl(), setupToken);
+        log.warn("=".repeat(80));
 
         sendEmail(toEmail, subject, htmlContent);
     }
@@ -49,8 +57,9 @@ public class EmailServiceImpl implements EmailService {
 
             log.info("Email sent successfully to {}", to);
         } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
-            throw new RuntimeException("Gagal mengirim email: " + e.getMessage(), e);
+            log.error("Failed to send email to {}: {}", to, e.getMessage());
+            // Throw exception to rollback transaction if email fails
+            throw new RuntimeException("Gagal mengirim email undangan. Silakan coba lagi atau hubungi administrator.", e);
         }
     }
 
