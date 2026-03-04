@@ -81,6 +81,12 @@ public class StorageServiceImpl implements StorageService {
         return endpoint + "/" + bucket + "/" + key;
     }
 
+    @Override
+    public String getDownloadUrl(String key) {
+        // Current storage uses public objects; download URL points to the same object URL.
+        return getPublicUrl(key);
+    }
+
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
             return "";
