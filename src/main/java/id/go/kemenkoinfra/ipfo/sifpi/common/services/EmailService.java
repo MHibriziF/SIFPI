@@ -1,16 +1,26 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.services;
 
-/**
- * Service interface for sending emails.
- */
+import java.util.List;
+
 public interface EmailService {
 
     /**
-     * Send invitation email to new executive with password setup link.
-     * 
-     * @param toEmail the recipient email address
-     * @param name the recipient name
-     * @param setupToken the password setup token
+     * Send an HTML email to a single recipient.
+     *
+     * @param to          recipient email address
+     * @param subject     email subject
+     * @param htmlContent fully-rendered HTML body
      */
-    void sendExecutiveInvitation(String toEmail, String name, String setupToken);
+    void sendEmail(String to, String subject, String htmlContent);
+
+    /**
+     * Blast the same HTML email to many recipients in one or more SendGrid requests.
+     * SendGrid allows up to 1000 personalizations per request; larger lists are
+     * automatically split into batches.
+     *
+     * @param toEmails    list of recipient email addresses
+     * @param subject     email subject
+     * @param htmlContent fully-rendered HTML body (same content for all recipients)
+     */
+    void sendBulkEmail(List<String> toEmails, String subject, String htmlContent);
 }

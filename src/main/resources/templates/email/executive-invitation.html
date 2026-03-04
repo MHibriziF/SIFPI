@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Akun Executive - SIFPI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f3f4f6;
+        }
+        .wrapper {
+            padding: 32px 16px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+        .header {
+            background-color: #1a56db;
+            color: #ffffff;
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .header p {
+            margin: 8px 0 0;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+        .content {
+            padding: 28px 32px;
+        }
+        .content p {
+            margin: 0 0 16px;
+            font-size: 15px;
+        }
+        .info-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            margin: 0 0 12px;
+            font-size: 14px;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .label {
+            font-weight: 600;
+            color: #6b7280;
+            min-width: 60px;
+            margin-right: 12px;
+        }
+        .value {
+            font-family: monospace;
+            background-color: #e5e7eb;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #111827;
+        }
+        .cta {
+            text-align: center;
+            margin: 28px 0 20px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #1a56db;
+            color: #ffffff;
+            padding: 13px 32px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .notice {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #1e40af;
+            margin-top: 20px;
+        }
+        .footer {
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            padding: 20px 24px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+        .footer p {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="header">
+                <h1>Selamat Datang di SIFPI by IPFO</h1>
+                <p>Sistem Informasi Fasilitasi Proyek Infrastruktur</p>
+            </div>
+
+            <div class="content">
+                <p>Yth. <strong>{{name}}</strong>,</p>
+                <p>Akun Executive Anda telah berhasil dibuat. Berikut adalah detail akun Anda:</p>
+
+                <div class="info-box">
+                    <h3>Informasi Akun</h3>
+                    <div class="info-row">
+                        <span class="label">Email</span>
+                        <span class="value">{{email}}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Role</span>
+                        <span class="value">Executive</span>
+                    </div>
+                </div>
+
+                <p>Untuk mengaktifkan akun Anda, klik tombol di bawah ini dan buat password Anda:</p>
+
+                <div class="cta">
+                    <a href="{{setupUrl}}" class="button">Buat Password</a>
+                </div>
+
+                <div class="notice">
+                    <strong>Perhatian:</strong> Link aktivasi ini akan kedaluwarsa dalam <strong>24 jam</strong>.
+                    Jika link sudah tidak berlaku, hubungi Administrator untuk mengirim ulang undangan.
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</p>
+                <p>&copy; 2026 IPFO &mdash; Kementerian Koordinator Bidang Infrastruktur</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
