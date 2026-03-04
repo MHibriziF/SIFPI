@@ -48,3 +48,10 @@ jwt:
   cookie-path: /
   cookie-secure: true
   cookie-same-site: Lax
+
+app:
+  email:
+    sendgrid-api-key: ${SENDGRID_API_KEY}
+    from-address: ${EMAIL_FROM_ADDRESS:noreply@mhibrizif.site}
+    from-name: ${EMAIL_FROM_NAME:SIFPI}
+    login-url: ${APP_LOGIN_URL:http://localhost:3000/login}
