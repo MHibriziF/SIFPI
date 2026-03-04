@@ -1,7 +1,6 @@
 # API Specification: Registration Features PM & Investor (UM-4 & UM-5)
 
-## Overview
-Spesifikasi lengkap untuk fitur registrasi Project Owner (UM-4) dan Investor (UM-5) di aplikasi IPFO.
+Spesifikasi lengkap dengan request/response examples untuk fitur registrasi Project Owner (UM-4) dan Investor (UM-5) di aplikasi IPFO.
 
 ---
 
@@ -16,13 +15,13 @@ POST /api/auth/register/owner
 
 ```json
 {
-  "nama": "John Doe",
-  "email": "john.doe@example.com",
-  "organisasi": "PT Example Indonesia",
-  "jabatan": "Manager Proyek",
+  "nama": "Budi Santoso",
+  "email": "budi.santoso@example.com",
+  "jabatan": "Direktur Proyek",
+  "organisasi": "PT Infrastruktur Indonesia",
   "phone": "081234567890",
-  "password": "SecurePassword123!",
-  "confirmPassword": "SecurePassword123!"
+  "password": "SecurePass123!",
+  "confirmPassword": "SecurePass123!"
 }
 ```
 
@@ -64,18 +63,18 @@ POST /api/auth/register/owner
 {
   "status": 201,
   "message": "Berhasil mendaftar sebagai Project Owner.",
-  "timestamp": "2026-03-01T23:35:29.613+07:00",
+  "timestamp": "2026-03-04T10:30:45.123456Z",
   "data": {
-    "id": "23e4c9af-b628-ddcf-b3c1-3dd95f2d19d9",
-    "nama": "John Doe",
-    "email": "john.doe@example.com",
-    "organisasi": "PT Example Indonesia",
-    "jabatan": "Manager Proyek",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "nama": "Budi Santoso",
+    "email": "budi.santoso@example.com",
+    "jabatan": "Direktur Proyek",
+    "organisasi": "PT Infrastruktur Indonesia",
     "phone": "081234567890",
-    "role": "PROJECT_OWNER",
-    "isActive": true,
     "isVerified": false,
-    "createdAt": "2026-03-01T23:35:29.613+07:00"
+    "isActive": true,
+    "roleName": "PROJECT_OWNER",
+    "createdAt": "2026-03-04T10:30:45.123456Z"
   }
 }
 ```
@@ -90,7 +89,7 @@ POST /api/auth/register/owner
 | `organisasi` | String | Organisasi/instansi |
 | `jabatan` | String | Jabatan user |
 | `phone` | String | Nomor telepon |
-| `role` | String | Role user: `PROJECT_OWNER` |
+| `roleName` | String | Role user: `PROJECT_OWNER` |
 | `isActive` | Boolean | Status aktif user (default: `true`) |
 | `isVerified` | Boolean | Status verifikasi email (default: `false` - pending admin review) |
 | `createdAt` | ISO 8601 | Timestamp user created |
@@ -157,20 +156,20 @@ POST /api/auth/register/investor
 
 ```json
 {
-  "nama": "Jane Doe",
-  "email": "jane.doe@example.com",
-  "organisasi": "PT Investasi Nusantara",
-  "jabatan": "Direktur Investasi",
-  "phone": "082134567890",
-  "password": "SecurePassword123!",
-  "confirmPassword": "SecurePassword123!",
-  "budgetInvestasi": "1-5 Miliar",
-  "sektorPrioritas": [
-    "Air Bersih",
-    "Transportasi",
-    "Energi"
+  "nama": "Rina Wijaya",
+  "email": "rina.wijaya@example.com",
+  "jabatan": "Investment Manager",
+  "organisasi": "PT Dana Investasi Nasional",
+  "phone": "082345678901",
+  "password": "InvestPass456!",
+  "confirmPassword": "InvestPass456!",
+  "budgetInvestasi": "1-5",
+  "sectorInterest": [
+    "TRANSPORTASI",
+    "AIR_BERSIH",
+    "ENERGI"
   ],
-  "optInEmail": false,
+  "optInEmail": true,
   "agreePrivacy": true
 }
 ```
@@ -184,30 +183,38 @@ POST /api/auth/register/investor
 | `organisasi` | String | ✅ Yes | Max 255 char, non-empty | Nama organisasi/instansi investor |
 | `jabatan` | String | ✅ Yes | Max 100 char, non-empty | Jabatan di organisasi |
 | `phone` | String | ✅ Yes | Max 20 char, non-empty | Nomor telepon |
-| `password` | String | ✅ Yes | Min 6 char | Password (akan di-hash) |
+| `password` | String | ✅ Yes | Min 8 char | Password (akan di-hash) |
 | `confirmPassword` | String | ✅ Yes | Harus match dengan password | Konfirmasi password |
-| `budgetInvestasi` | String | ✅ Yes | Max 50 char, non-empty | Rentang budget investasi (pilihan dropdown di FE) |
-| `sektorPrioritas` | Array<String> | ✅ Yes | Min 3 items, max 6 items | Array sektor yang dipilih (minimal 3, maksimal 6) |
+| `budgetInvestasi` | String | ✅ Yes | Max 50 char, non-empty, dari enum BudgetRange | Rentang budget investasi (nilai: `<1`, `1-5`, `5-10`, `>10`) |
+| `sectorInterest` | Array<String> | ✅ Yes | Min 3 items, nilai dari enum Sector | Array sektor yang dipilih (minimal 3 sektor) |
 | `optInEmail` | Boolean | ❌ No | - | Opt-in untuk update katalog proyek via email (default: false) |
 | `agreePrivacy` | Boolean | ✅ Yes | Harus `true` | Persetujuan data benar & kebijakan privasi (REQUIRED TRUE) |
 
-### Valid Sector Options (Sektor Prioritas)
+### Valid Sector Options (Sektor Interest)
 
-- `Air Bersih`
-- `Sampah`
-- `Transportasi`
-- `Perumahan`
-- `Energi`
-- `MBG` (Mitigasi Bencana Gempa)
+Gunakan **value** (bukan label) dalam request:
+
+| Value | Label |
+|-------|-------|
+| `AIR_BERSIH` | Air Bersih |
+| `TRANSPORTASI` | Transportasi |
+| `ENERGI` | Energi |
+| `SAMPAH` | Sampah |
+| `PERUMAHAN` | Perumahan |
+| `MBGI` | MBGI |
+
+**Tip:** Frontend dapat memanggil `GET /api/auth/register/registration-options` untuk mendapatkan daftar lengkap opsi dengan labels.
 
 ### Valid Budget Range Options (Budget Investasi)
 
-- `< 500 Juta`
-- `500 Juta - 1 Miliar`
-- `1-5 Miliar`
-- `5-10 Miliar`
-- `10-50 Miliar`
-- `> 50 Miliar`
+Gunakan **value** dalam request:
+
+| Value | Label |
+|-------|-------|
+| `<1` | < 1 Miliar |
+| `1-5` | 1-5 Miliar |
+| `5-10` | 5-10 Miliar |
+| `>10` | > 10 Miliar |
 
 ### Validasi Rules
 
@@ -244,25 +251,26 @@ POST /api/auth/register/investor
 {
   "status": 201,
   "message": "Berhasil mendaftar sebagai Investor.",
-  "timestamp": "2026-03-01T23:40:15.892+07:00",
+  "timestamp": "2026-03-04T10:35:20.654321Z",
   "data": {
-    "id": "45f6d2ba-c781-4a9b-b5e2-7c9e3f1d2a8b",
-    "nama": "Jane Doe",
-    "email": "jane.doe@example.com",
-    "organisasi": "PT Investasi Nusantara",
-    "jabatan": "Direktur Investasi",
-    "phone": "082134567890",
-    "role": "INVESTOR",
-    "isActive": true,
+    "id": "660e8400-e29b-41d4-a716-446655440001",
+    "nama": "Rina Wijaya",
+    "email": "rina.wijaya@example.com",
+    "jabatan": "Investment Manager",
+    "organisasi": "PT Dana Investasi Nasional",
+    "phone": "082345678901",
     "isVerified": false,
-    "budgetInvestasi": "1-5 Miliar",
-    "sektorPrioritas": [
-      "Air Bersih",
-      "Transportasi",
-      "Energi"
+    "isActive": true,
+    "roleName": "INVESTOR",
+    "budgetInvestasi": "1-5",
+    "sectorInterest": [
+      "TRANSPORTASI",
+      "AIR_BERSIH",
+      "ENERGI"
     ],
-    "optInEmail": false,
-    "createdAt": "2026-03-01T23:40:15.892+07:00"
+    "optInEmail": true,
+    "agreePrivacy": true,
+    "createdAt": "2026-03-04T10:35:20.654321Z"
   }
 }
 ```
@@ -277,12 +285,13 @@ POST /api/auth/register/investor
 | `organisasi` | String | Organisasi/instansi |
 | `jabatan` | String | Jabatan user |
 | `phone` | String | Nomor telepon |
-| `role` | String | Role user: `INVESTOR` |
+| `roleName` | String | Role user: `INVESTOR` |
 | `isActive` | Boolean | Status aktif user (default: `true`) |
 | `isVerified` | Boolean | Status verifikasi (default: `false` - pending admin review) |
-| `budgetInvestasi` | String | Rentang budget yang dipilih |
-| `sektorPrioritas` | Array<String> | Daftar sektor yang dipilih |
+| `budgetInvestasi` | String | Rentang budget yang dipilih (value dari enum, e.g., `1-5`) |
+| `sectorInterest` | Array<String> | Daftar sektor yang dipilih (values dari enum, e.g., `[TRANSPORTASI, AIR_BERSIH]`) |
 | `optInEmail` | Boolean | Status opt-in email |
+| `agreePrivacy` | Boolean | Status persetujuan kebijakan privasi |
 | `createdAt` | ISO 8601 | Timestamp user created |
 
 ### Error Response (400 Bad Request - Sector < 3)
@@ -290,8 +299,19 @@ POST /api/auth/register/investor
 ```json
 {
   "status": 400,
-  "message": "Permintaan tidak valid: Minimal 3 sektor prioritas harus dipilih",
-  "timestamp": "2026-03-01T23:40:15.892+07:00",
+  "message": "Minimal 3 sektor prioritas harus dipilih",
+  "timestamp": "2026-03-04T10:42:18.234567Z",
+  "data": null
+}
+```
+
+### Error Response (400 Bad Request - Invalid Sector Value)
+
+```json
+{
+  "status": 400,
+  "message": "Sektor tidak valid: INVALID_SECTOR",
+  "timestamp": "2026-03-04T10:42:18.234567Z",
   "data": null
 }
 ```
@@ -301,8 +321,8 @@ POST /api/auth/register/investor
 ```json
 {
   "status": 400,
-  "message": "Permintaan tidak valid: Anda harus menyetujui syarat dan kebijakan privasi",
-  "timestamp": "2026-03-01T23:40:15.892+07:00",
+  "message": "Anda harus menyetujui syarat dan kebijakan privasi",
+  "timestamp": "2026-03-04T10:43:10.123456Z",
   "data": null
 }
 ```
@@ -312,8 +332,19 @@ POST /api/auth/register/investor
 ```json
 {
   "status": 400,
-  "message": "Permintaan tidak valid: Password dan konfirmasi password tidak cocok",
-  "timestamp": "2026-03-01T23:40:15.892+07:00",
+  "message": "Password dan konfirmasi password tidak cocok",
+  "timestamp": "2026-03-04T10:41:22.456789Z",
+  "data": null
+}
+```
+
+### Error Response (400 Bad Request - Invalid Budget)
+
+```json
+{
+  "status": 400,
+  "message": "Budget investasi tidak valid",
+  "timestamp": "2026-03-04T10:42:18.234567Z",
   "data": null
 }
 ```
@@ -324,63 +355,112 @@ POST /api/auth/register/investor
 {
   "status": 409,
   "message": "Email sudah terdaftar",
-  "timestamp": "2026-03-01T23:40:15.892+07:00",
+  "timestamp": "2026-03-04T10:40:15.789012Z",
   "data": null
 }
 ```
 
 ### Business Logic
 
-1. Validasi semua field required
-2. Cek email tidak duplikat → jika duplikat throw `ConflictException` (409)
-3. Cek password dan confirmPassword match → jika tidak match throw `BadRequestException` (400)
-4. Cek sectorPrioritas minimal 3 items → jika < 3 throw `BadRequestException` (400)
-5. Cek agreePrivacy = true → jika false throw `BadRequestException` (400)
-6. Get role `INVESTOR` dari database
-7. Hash password menggunakan `BCryptPasswordEncoder`
-8. Convert sectorPrioritas array to comma-separated string untuk storage
-9. Create User entity dengan:
-   - `role` = INVESTOR
-   - `isActive` = true
-   - `isVerified` = false (pending admin verification)
-   - `password` = hashed password
-   - `budgetInvestasi` = budget yang dipilih
-   - `sectorPrioritas` = comma-separated string
-   - `optInEmail` = subscription preference
-   - Field lainnya sesuai request
-10. Save user ke database
-11. Return UserDTO dengan 201 Created
-12. (Optional) Kirim email verifikasi atau notifikasi
+1. Validasi semua field required (via `@Valid` annotation)
+2. Cek `budgetInvestasi` adalah value yang valid dari enum `BudgetRange` → jika tidak throw `IllegalArgumentException` (400)
+3. Cek email tidak duplikat → jika duplikat throw `ConflictException` (409)
+4. Cek password dan confirmPassword match → jika tidak match throw `IllegalArgumentException` (400)
+5. Cek `sectorInterest` minimal 3 items → jika < 3 throw `IllegalArgumentException` (400)
+6. Validasi setiap nilai dalam `sectorInterest` adalah value yang valid dari enum `Sector` → jika ada yang invalid throw `IllegalArgumentException` (400)
+7. Cek `agreePrivacy` = true → jika false throw `IllegalArgumentException` (400)
+8. Get role `INVESTOR` dari database
+9. Hash password menggunakan `BCryptPasswordEncoder`
+10. Convert `sectorInterest` list to comma-separated string untuk storage di `investor_profiles.sector_interest`
+11. Create dan save User entity dengan:
+    - `role` = INVESTOR
+    - `isActive` = true
+    - `isVerified` = false (pending admin verification)
+    - `password` = hashed password
+    - Field lainnya sesuai request
+12. Create dan save InvestorProfile entity dengan:
+    - `budgetRange` = `budgetInvestasi` value
+    - `sectorInterest` = comma-separated string
+    - `optInEmail` = subscription preference
+    - `agreePrivacy` = true
+13. Set bidirectional relationship (User ↔ InvestorProfile)
+14. Reload User dari database untuk memastikan InvestorProfile ter-load
+15. Load email template `investor-registration.html` dan kirim email async (non-blocking)
+16. Map User + InvestorProfile ke InvestorDTO
+17. Return dengan HTTP 201 Created
 
 ---
 
-## 3. HTTP Status Code Reference
+## 3. ENDPOINT METADATA
+
+### GET /api/auth/register/registration-options
+
+Endpoint publik untuk mendapatkan daftar opsi yang valid untuk dropdown dan checkbox di UI frontend.
+
+**Response (200 OK):**
+
+```json
+{
+  "budgetOptions": [
+    { "value": "<1", "label": "< 1 Miliar" },
+    { "value": "1-5", "label": "1-5 Miliar" },
+    { "value": "5-10", "label": "5-10 Miliar" },
+    { "value": ">10", "label": "> 10 Miliar" }
+  ],
+  "sectorOptions": [
+    { "value": "AIR_BERSIH", "label": "Air Bersih" },
+    { "value": "TRANSPORTASI", "label": "Transportasi" },
+    { "value": "ENERGI", "label": "Energi" },
+    { "value": "SAMPAH", "label": "Sampah" },
+    { "value": "PERUMAHAN", "label": "Perumahan" },
+    { "value": "MBGI", "label": "MBGI" }
+  ]
+}
+```
+
+**Keterangan:**
+- Endpoint ini **publik** (tidak perlu authentication)
+- Frontend panggil endpoint ini saat load registration page
+- Gunakan `value` dalam request body, tampilkan `label` di UI
+
+---
+
+## 4. HTTP Status Code Reference
 
 | Code | Scenario |
 |------|----------|
+| `200 OK` | Metadata retrieved successfully (GET /registration-options) |
 | `201 Created` | Registration berhasil |
-| `400 Bad Request` | Validasi gagal (password mismatch, sector < 3, agreementFalse, dll) |
+| `400 Bad Request` | Validasi gagal (password mismatch, sector < 3, invalid sector/budget value, agreePrivacy false, dll) |
 | `409 Conflict` | Email sudah terdaftar |
-| `422 Unprocessable Entity` | Data format invalid (misal: sector yang tidak valid) |
 | `500 Internal Server Error` | Server error |
 
 ---
 
-## 4. Error Message Convention
+## 5. Error Message Convention
 
-Semua error message mengikuti format:
-```
-"Permintaan tidak valid: <detail error>"
-```
+Error messages dari service layer:
+- Field validation errors (dari `@Valid` annotation): Sesuai message di DTO
+- Business logic errors (email duplikat): `"Email sudah terdaftar"`
+- Invalid sector: `"Sektor tidak valid: <values>"`
+- Invalid budget: `"Budget investasi tidak valid"`
+- Password mismatch: `"Password dan konfirmasi password tidak cocok"`
+- Minimum sector: `"Minimal 3 sektor prioritas harus dipilih"`
+- Agreement: `"Anda harus menyetujui syarat dan kebijakan privasi"`
 
-Atau untuk conflict:
-```
-"<resource> sudah terdaftar"
+Error response wrapper dari GlobalExceptionHandler:
+```json
+{
+  "status": <HTTP_STATUS>,
+  "message": "<error message>",
+  "timestamp": "ISO_8601_TIMESTAMP",
+  "data": null
+}
 ```
 
 ---
 
-## 5. Security Considerations
+## 6. Security Considerations
 
 1. **Password Hashing:**
    - Semua password harus di-hash dengan BCryptPasswordEncoder sebelum disimpan
@@ -401,7 +481,7 @@ Atau untuk conflict:
 
 ---
 
-## 6. Implementation Notes
+## 7. Implementation Notes
 
 ### DTOs
 
@@ -428,31 +508,49 @@ public class CreateInvestorRequest {
     @NotBlank private String organisasi;
     @NotBlank private String jabatan;
     @NotBlank private String phone;
-    @NotBlank @Size(min=6) private String password;
+    @NotBlank @Size(min=8) private String password;
     @NotBlank private String confirmPassword;
     @NotBlank private String budgetInvestasi;
-    @NotEmpty @Size(min=3, max=6) private List<String> sektorPrioritas;
+    @NotEmpty @Size(min=3) private List<String> sectorInterest;
     private Boolean optInEmail = false;
     @NotNull @AssertTrue private Boolean agreePrivacy;
 }
 ```
 
-**UserDTO (Response):**
+**OwnerDTO (Response - Project Owner):**
 ```java
 @Data
-public class UserDTO {
+public class OwnerDTO {
     private UUID id;
     private String nama;
     private String email;
     private String organisasi;
     private String jabatan;
     private String phone;
-    private String role;
+    private String roleName;
     private Boolean isActive;
     private Boolean isVerified;
-    private String budgetInvestasi;    // nullable untuk Project Owner
-    private List<String> sektorPrioritas; // nullable untuk Project Owner
-    private Boolean optInEmail;         // nullable untuk Project Owner
+    private LocalDateTime createdAt;
+}
+```
+
+**InvestorDTO (Response - Investor):**
+```java
+@Data
+public class InvestorDTO {
+    private UUID id;
+    private String nama;
+    private String email;
+    private String organisasi;
+    private String jabatan;
+    private String phone;
+    private String roleName;
+    private Boolean isActive;
+    private Boolean isVerified;
+    private String budgetInvestasi;    // value dari enum (e.g., "1-5")
+    private List<String> sectorInterest; // values dari enum (e.g., ["TRANSPORTASI", "AIR_BERSIH"])
+    private Boolean optInEmail;
+    private Boolean agreePrivacy;
     private LocalDateTime createdAt;
 }
 ```
@@ -488,7 +586,10 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 
 ---
 
-## 7. Testing Checklist
+## 8. Testing Checklist
+
+### Get Registration Options
+- ✅ GET /api/auth/register/registration-options → 200 OK with budgetOptions & sectorOptions
 
 ### Project Owner Registration
 - ✅ Valid request → 201 Created
@@ -496,15 +597,60 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 - ✅ Password mismatch → 400 Bad Request
 - ✅ Missing required field → 400 Bad Request
 - ✅ Invalid email format → 400 Bad Request
+- ✅ Password < 8 chars → 400 Bad Request (validation)
 
 ### Investor Registration
 - ✅ Valid request → 201 Created
 - ✅ Duplicate email → 409 Conflict
 - ✅ Password mismatch → 400 Bad Request
 - ✅ Sector < 3 → 400 Bad Request
+- ✅ Invalid sector value (e.g., "INVALID_SECTOR") → 400 Bad Request
+- ✅ Invalid budget value (e.g., "100 Miliar") → 400 Bad Request
 - ✅ agreePrivacy = false → 400 Bad Request
 - ✅ Missing required field → 400 Bad Request
-- ✅ Invalid sector in list → 422 Unprocessable Entity
+
+---
+
+## 9. API Integration Quick Start
+
+### Step 1: Get Registration Options
+```bash
+curl -s http://localhost:8080/api/auth/register/registration-options | jq
+```
+
+### Step 2: Register Project Owner
+```bash
+curl -X POST http://localhost:8080/api/auth/register/owner \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nama": "Budi Santoso",
+    "email": "budi.test@example.com",
+    "jabatan": "Direktur Proyek",
+    "organisasi": "PT Infrastruktur Indonesia",
+    "phone": "081234567890",
+    "password": "SecurePass123!",
+    "confirmPassword": "SecurePass123!"
+  }' | jq
+```
+
+### Step 3: Register Investor
+```bash
+curl -X POST http://localhost:8080/api/auth/register/investor \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nama": "Rina Wijaya",
+    "email": "rina.test@example.com",
+    "jabatan": "Investment Manager",
+    "organisasi": "PT Dana Investasi Nasional",
+    "phone": "082345678901",
+    "password": "InvestPass456!",
+    "confirmPassword": "InvestPass456!",
+    "budgetInvestasi": "1-5",
+    "sectorInterest": ["TRANSPORTASI", "AIR_BERSIH", "ENERGI"],
+    "optInEmail": true,
+    "agreePrivacy": true
+  }' | jq
+```
 
 ---
 
@@ -512,5 +658,6 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.0 | 2026-03-04 | Merged docs + added enum values + registration-options endpoint |
 | 1.0 | 2026-03-01 | Initial specification |
 

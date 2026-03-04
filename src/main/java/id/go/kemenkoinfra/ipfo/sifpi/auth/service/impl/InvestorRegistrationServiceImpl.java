@@ -3,8 +3,10 @@ package id.go.kemenkoinfra.ipfo.sifpi.auth.service.impl;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.InvestorDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateInvestorRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RegistrationMapper;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.BudgetRange;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.InvestorProfile;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.InvestorProfileRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
@@ -42,7 +44,10 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
     @Transactional
     public InvestorDTO registerInvestor(CreateInvestorRequest request) {
         log.info("Registering new investor with email: {}", request.getEmail());
-
+        // --- validation: ensure budget & sector values are allowed by system metadata ---
+        if (!BudgetRange.isValidValue(request.getBudgetInvestasi())) {
+            throw new IllegalArgumentException("Budget investasi tidak valid");
+        }
         // Validasi email duplicate
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ConflictException("Email sudah terdaftar");
@@ -56,6 +61,16 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
         // Validasi sector interest minimal 3
         if (request.getSectorInterest() == null || request.getSectorInterest().size() < 3) {
             throw new IllegalArgumentException("Minimal 3 sektor prioritas harus dipilih");
+        }
+
+        // validate each sector against allowed options
+        java.util.List<String> invalidSectors = request.getSectorInterest().stream()
+                .filter(s -> !Sector.isValidValue(s))
+                .distinct()
+                .toList();
+
+        if (!invalidSectors.isEmpty()) {
+            throw new IllegalArgumentException("Sektor tidak valid: " + String.join(", ", invalidSectors));
         }
 
         // Validasi agreePrivacy must be true
