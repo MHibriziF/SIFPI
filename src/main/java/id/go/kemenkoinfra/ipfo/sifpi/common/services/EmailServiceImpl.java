@@ -1,9 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.services;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -15,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 public class EmailServiceImpl implements EmailService {
 
     private static final String SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
-    private static final int SENDGRID_MAX_BATCH = 1000;
 
     private final EmailProperties emailProperties;
     private final RestClient restClient;
@@ -27,32 +24,21 @@ public class EmailServiceImpl implements EmailService {
                 .build();
     }
 
+    /**
+     * Send invitation email to new executive with password setup link.
+     */
     @Override
-    public void sendEmail(String to, String subject, String htmlContent) {
-        String payload = buildPayload(List.of(to), subject, htmlContent);
-        dispatch(payload, 1);
-        log.info("Email sent successfully to {}", to);
+    @Async
+    public void sendExecutiveInvitation(String toEmail, String name, String setupToken) {
+        String subject = "Undangan Akun Executive - SIFPI";
+        String htmlContent = buildExecutiveInvitationEmail(name, toEmail, setupToken);
+
+        sendEmail(toEmail, subject, htmlContent);
     }
 
-    @Override
-    public void sendBulkEmail(List<String> toEmails, String subject, String htmlContent) {
-        if (toEmails == null || toEmails.isEmpty()) {
-            log.warn("sendBulkEmail called with empty recipient list, skipping");
-            return;
-        }
+    private void sendEmail(String to, String subject, String htmlContent) {
+        String payload = buildSendGridPayload(to, subject, htmlContent);
 
-        int totalBatches = (int) Math.ceil((double) toEmails.size() / SENDGRID_MAX_BATCH);
-
-        for (int i = 0; i < toEmails.size(); i += SENDGRID_MAX_BATCH) {
-            List<String> batch = toEmails.subList(i, Math.min(i + SENDGRID_MAX_BATCH, toEmails.size()));
-            String payload = buildPayload(batch, subject, htmlContent);
-            dispatch(payload, batch.size());
-            log.info("Bulk email batch {}/{} sent ({} recipients)",
-                    (i / SENDGRID_MAX_BATCH) + 1, totalBatches, batch.size());
-        }
-    }
-
-    private void dispatch(String payload, int recipientCount) {
         try {
             restClient.post()
                     .header("Authorization", "Bearer " + emailProperties.getSendgridApiKey())
@@ -60,13 +46,15 @@ public class EmailServiceImpl implements EmailService {
                     .body(payload)
                     .retrieve()
                     .toBodilessEntity();
+
+            log.info("Email sent successfully to {}", to);
         } catch (Exception e) {
-            log.error("Failed to send email to {} recipient(s): {}", recipientCount, e.getMessage());
-            throw new RuntimeException("Gagal mengirim email. Silakan coba lagi atau hubungi administrator.", e);
+            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
+            throw new RuntimeException("Gagal mengirim email: " + e.getMessage(), e);
         }
     }
 
-    private String buildPayload(List<String> emails, String subject, String htmlContent) {
+    private String buildSendGridPayload(String to, String subject, String htmlContent) {
         String escapedContent = htmlContent
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
@@ -74,14 +62,12 @@ public class EmailServiceImpl implements EmailService {
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
 
-        String personalizations = emails.stream()
-                .map(email -> "{\"to\": [{\"email\": \"" + email.replace("\"", "\\\"") + "\"}]}")
-                .collect(Collectors.joining(",\n            "));
-
         return """
             {
                 "personalizations": [
-                    %s
+                    {
+                        "to": [{"email": "%s"}]
+                    }
                 ],
                 "from": {
                     "email": "%s",
@@ -96,11 +82,69 @@ public class EmailServiceImpl implements EmailService {
                 ]
             }
             """.formatted(
-                personalizations,
+                to,
                 emailProperties.getFromAddress(),
                 emailProperties.getFromName(),
                 subject,
                 escapedContent
             );
+    }
+
+    private String buildExecutiveInvitationEmail(String name, String email, String setupToken) {
+        // Build set password URL (frontend page)
+        String setPasswordUrl = emailProperties.getLoginUrl().replace("/login", "/set-password?token=" + setupToken);
+
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #1a56db; color: white; padding: 20px; text-align: center; }
+                    .content { padding: 20px; background-color: #f9fafb; }
+                    .info-box { background-color: #fff; border: 1px solid #e5e7eb; padding: 15px; margin: 20px 0; border-radius: 8px; }
+                    .info-box p { margin: 8px 0; }
+                    .label { font-weight: bold; color: #374151; }
+                    .value { font-family: monospace; background-color: #f3f4f6; padding: 4px 8px; border-radius: 4px; }
+                    .button { display: inline-block; background-color: #1a56db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+                    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+                    .notice { background-color: #dbeafe; border: 1px solid #3b82f6; padding: 12px; border-radius: 6px; margin-top: 15px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Selamat Datang di SIFPI</h1>
+                    </div>
+                    <div class="content">
+                        <p>Yth. <strong>%s</strong>,</p>
+                        <p>Akun Executive Anda telah berhasil dibuat di Sistem Informasi Fasilitasi Proyek Infrastruktur (SIFPI).</p>
+                        
+                        <div class="info-box">
+                            <h3 style="margin-top: 0;">Informasi Akun</h3>
+                            <p><span class="label">Email:</span> <span class="value">%s</span></p>
+                            <p><span class="label">Role:</span> <span class="value">Executive</span></p>
+                        </div>
+
+                        <p>Untuk mengaktifkan akun Anda, silakan klik tombol di bawah ini untuk membuat password:</p>
+
+                        <center>
+                            <a href="%s" class="button">Buat Password</a>
+                        </center>
+
+                        <div class="notice">
+                            <strong>ℹ️ Informasi:</strong> Link ini akan kedaluwarsa dalam 24 jam. Jika link sudah tidak berlaku, silakan hubungi Administrator untuk mengirim ulang undangan.
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</p>
+                        <p>&copy; 2026 SIFPI - Kementerian Koordinator Bidang Infrastruktur</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(name, email, setPasswordUrl);
     }
 }
