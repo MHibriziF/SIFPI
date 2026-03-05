@@ -51,21 +51,33 @@ public class User {
     @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(length = 255)
-    private String organisasi;
-
     @Column(length = 20)
     private String phone;
 
-    @Column(nullable = false)
-    private Boolean isVerified = false;
+    @Column(length = 255)
+    private String organisasi;
 
-    @Column(nullable = false)
-    private Boolean isActive = true;
+    @Column(length = 100)
+    private String jabatan;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
+
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(nullable = false)
+    private boolean isActive = true;
+
+    // Password setup token for new users (set password flow)
+    @Column(length = 100)
+    private String passwordSetupToken;
+
+    private LocalDateTime passwordSetupTokenExpiry;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

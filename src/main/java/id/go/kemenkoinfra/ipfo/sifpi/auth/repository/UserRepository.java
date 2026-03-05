@@ -94,4 +94,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("search") String search,
         Pageable pageable
     );
+    
+    // For password management
+    Optional<User> findByEmail(String email);
+    Optional<User> findByPasswordSetupToken(String token);
 }

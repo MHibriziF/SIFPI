@@ -36,6 +36,12 @@ public class GlobalExceptionHandler {
         log.warn("Not Found: {}", ex.getMessage(), ex);
         return responseUtil.error(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<?> handleConflict(ConflictException ex) {
+        log.warn("Conflict: {}", ex.getMessage(), ex);
+        return responseUtil.error(ex.getMessage(), HttpStatus.CONFLICT);
+    }
     
     @ExceptionHandler({
         NoHandlerFoundException.class,
