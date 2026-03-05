@@ -2,10 +2,15 @@ package id.go.kemenkoinfra.ipfo.sifpi.project.service.impl;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.services.StorageService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
@@ -25,6 +30,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMapper projectMapper;
     private final StorageService storageService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -33,6 +39,7 @@ public class ProjectServiceImpl implements ProjectService {
             MultipartFile mapFile,
             MultipartFile projectStructureFile,
             MultipartFile projectFile) {
+        User creator = resolveCurrentUser();
         validateFinancialMetrics(request);
 
         String locationImageKey = storageService.upload(STORAGE_FOLDER, mapFile);
@@ -43,6 +50,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setLocationImageKey(locationImageKey);
         project.setProjectStructureImageKey(projectStructureImageKey);
         project.setProjectFileKey(projectFileKey);
+        project.setOwnerId(creator.getId());
 
         attachProjectToTimelines(project);
 
@@ -78,5 +86,22 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.getIrr() == null) {
             throw new IllegalArgumentException("irr wajib diisi ketika isFeasibilityStudy bernilai true");
         }
+    }
+
+    private User resolveCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Akses ditolak.");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AccessDeniedException("Akses ditolak."));
+
+        if (!user.isEmailVerified()) {
+            throw new AccessDeniedException("User belum terverifikasi.");
+        }
+
+        return user;
     }
 }

@@ -2,6 +2,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.project.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 public class ProjectResponseDTO {
 
     private Long id;
+    private UUID ownerId;
     private String name;
     private String description;
     private String sector;

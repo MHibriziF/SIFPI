@@ -21,6 +21,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectTimeline;
 public interface ProjectMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "ownerId", ignore = true)
     @Mapping(target = "sector", expression = "java(toSector(request.getSector()))")
     @Mapping(target = "status", expression = "java(toStatus(request.getStatus()))")
     @Mapping(target = "locationImageKey", ignore = true)
@@ -33,6 +34,7 @@ public interface ProjectMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "ownerId", ignore = true)
     @Mapping(target = "sector", expression = "java(request.getSector() == null ? project.getSector() : toSector(request.getSector()))")
     @Mapping(target = "status", expression = "java(request.getStatus() == null ? project.getStatus() : toStatus(request.getStatus()))")
     @Mapping(target = "revisions", ignore = true)

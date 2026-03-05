@@ -26,7 +26,7 @@ public class ProjectController {
     private final ProjectService projectService;
     private final ResponseUtil responseUtil;
 
-    @PreAuthorize("hasAuthority('PROJECT:CREATE')")
+    @PreAuthorize("hasAnyRole('PROJECT_OWNER','ADMIN')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponseDTO<ProjectResponseDTO>> createProject(
             @Valid @RequestPart("data") CreateProjectRequest request,
