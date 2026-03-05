@@ -15,7 +15,7 @@ public final class AuthPath {
     public static final String ROLES = "/roles";
 
     public static final String[] PUBLIC = {
-        API + REGISTER,
+        API + REGISTER + "/**",
         API + LOGIN,
         API + LOGOUT,
         API + SET_PASSWORD
