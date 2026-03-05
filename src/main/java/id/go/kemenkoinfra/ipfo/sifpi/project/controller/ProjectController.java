@@ -3,6 +3,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.project.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -25,6 +26,7 @@ public class ProjectController {
     private final ProjectService projectService;
     private final ResponseUtil responseUtil;
 
+    @PreAuthorize("hasAuthority('PROJECT:CREATE')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponseDTO<ProjectResponseDTO>> createProject(
             @Valid @RequestPart("data") CreateProjectRequest request,
