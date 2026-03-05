@@ -4,6 +4,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.InvestorDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.OwnerDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateInvestorRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateOwnerRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.EmailVerificationService;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.InvestorRegistrationService;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.OwnerRegistrationService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
@@ -12,10 +13,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth/register")
@@ -24,6 +29,7 @@ public class RegistrationController {
 
     private final OwnerRegistrationService ownerRegistrationService;
     private final InvestorRegistrationService investorRegistrationService;
+    private final EmailVerificationService emailVerificationService;
     private final ResponseUtil responseUtil;
 
     @PostMapping("/owner")
@@ -40,5 +46,21 @@ public class RegistrationController {
 
         InvestorDTO result = investorRegistrationService.registerInvestor(request);
         return responseUtil.success(result, "Berhasil mendaftar sebagai Investor.", HttpStatus.CREATED);
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<BaseResponseDTO<Void>> verifyEmail(@RequestParam String token) {
+        emailVerificationService.verifyEmail(token);
+        return responseUtil.success(null, "Email berhasil diverifikasi.", HttpStatus.OK);
+    }
+
+    @PostMapping("/verify-email/resend")
+    public ResponseEntity<BaseResponseDTO<Void>> resendVerificationEmail(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email tidak boleh kosong");
+        }
+        emailVerificationService.resendVerificationEmail(email);
+        return responseUtil.success(null, "Link verifikasi telah dikirim ulang ke email Anda.", HttpStatus.OK);
     }
 }

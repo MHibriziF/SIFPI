@@ -20,4 +20,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     // For password management
     Optional<User> findByPasswordSetupToken(String token);
+
+    // For email verification
+    Optional<User> findByEmailVerificationToken(String token);
 }

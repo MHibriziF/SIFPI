@@ -31,10 +31,13 @@ public class RegistrationEmailListener {
     public void onInvestorRegistered(InvestorRegisteredEvent event) {
         try {
             String sectors = String.join(", ", event.request().getSectorInterest());
+            String verifyEmailUrl = emailProperties.getLoginUrl() + "/verify-email?token=" + event.user().getEmailVerificationToken();
             
             String html = emailTemplateUtil.load("investor-registration", Map.of(
                     "name", event.user().getName(),
                     "email", event.user().getEmail(),
+                    "verifyEmailUrl", verifyEmailUrl,
+                    "verificationToken", event.user().getEmailVerificationToken(),
                     "loginUrl", emailProperties.getLoginUrl(),
                     "sectors", sectors,
                     "budget", event.request().getBudgetInvestasi() != null ? event.request().getBudgetInvestasi() : "-"
@@ -55,9 +58,13 @@ public class RegistrationEmailListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onOwnerRegistered(OwnerRegisteredEvent event) {
         try {
+            String verifyEmailUrl = emailProperties.getLoginUrl() + "/verify-email?token=" + event.user().getEmailVerificationToken();
+            
             String html = emailTemplateUtil.load("owner-registration", Map.of(
                     "name", event.user().getName(),
                     "email", event.user().getEmail(),
+                    "verifyEmailUrl", verifyEmailUrl,
+                    "verificationToken", event.user().getEmailVerificationToken(),
                     "loginUrl", emailProperties.getLoginUrl()
             ));
 

@@ -18,12 +18,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
 
     private static final String ROLE_PROJECT_OWNER = "PROJECT_OWNER";
+    private static final int EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 25;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -54,9 +58,14 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(ownerRole);
 
-        // Save user
+        // Generate email verification token
+        String verificationToken = UUID.randomUUID().toString().replace("-", "");
+        user.setEmailVerificationToken(verificationToken);
+        user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusMinutes(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES));
+
+        // Save user to database (emailVerified = false initially)
         User savedUser = userRepository.saveAndFlush(user);
-        log.info("Project owner registered successfully with id: {}", savedUser.getId());
+        log.info("Project owner registered successfully with id: {}, awaiting email verification", savedUser.getId());
 
         // Publish event untuk email (dikirim setelah DB commit berhasil)
         eventPublisher.publishEvent(new OwnerRegisteredEvent(savedUser, request));

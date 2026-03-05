@@ -428,7 +428,380 @@ Gunakan **value** dalam request:
 
 ---
 
-## 3. ENDPOINT METADATA
+## 3. EMAIL VERIFICATION FLOW
+
+Setelah user berhasil register, mereka akan menerima email dengan link verifikasi yang harus diklik dalam **25 menit**. Jika tidak diklik dalam waktu tersebut, token akan expired dan user harus register ulang dari awal.
+
+### Timeline & Alur
+
+```
+T+0 MENIT: User klik "Daftar" di registration form
+    ↓
+T+0 MENIT: Backend create User dengan:
+    - emailVerified = false
+    - emailVerificationToken = UUID token (25 min expiry)
+    - emailVerificationTokenExpiry = now + 25 minutes
+    ↓
+T+0 MENIT: Email terkirim dengan:
+    - Button: "Verifikasi Email"
+    - Atau: Manual token code untuk copy-paste
+    - Pesan: "Link ini berlaku 25 menit"
+    ↓
+T+1-25 MENIT: User klik link "Verifikasi Email" di email
+    ↓
+SKENARIO A: User BUKA LINK DALAM 25 MENIT ✅
+    ├─ Browser redirect ke: /verify-email?token=xxxxx
+    ├─ Frontend auto-call: GET /api/auth/register/verify-email?token=xxxxx
+    ├─ Backend: Validate token, set emailVerified = true, save user
+    ├─ Frontend: Redirect ke /login dengan MODAL notifikasi
+    │   └─ Modal: "✅ Akun Anda Berhasil Terdaftar!"
+    │       "Email sudah terverifikasi. Silakan login."
+    │       [Tombol: OK/Lanjut]
+    ├─ User klik OK → Modal close → Tetap di /login page
+    └─ User bisa login sekarang ✅
+
+SKENARIO B: Token EXPIRED (> 25 MENIT) ❌
+    ├─ Link di email tidak bekerja lagi
+    ├─ Token dianggap invalid
+    ├─ Akun TIDAK tersimpan di database (data dianggap pending/invalid)
+    ├─ User HARUS registrasi ulang dari awal
+    │   └─ Bisa gunakan email sama atau email baru
+    ├─ Dari sini scenario A berlaku: verify dalam 25 menit
+    └─ TIDAK ADA TOMBOL RESEND di login atau email ❌
+```
+
+### Verification Methods (2 cara dari 1 email)
+
+Dari email registration yang sama, user bisa verify dengan 2 cara:
+
+#### Method 1: Click Link (Auto-Verify)
+1. User terima email
+2. Klik button "Verifikasi Email"
+3. Browser auto-redirect ke `/verify-email?token=xxxxx`
+4. Frontend auto-call verification endpoint
+5. Token valid? → emailVerified = true → Redirect ke /login dengan modal
+
+#### Method 2: Manual Token Input (Jika link tidak bekerja)
+1. User terima email
+2. Copy token code dari email
+3. Buka halaman `/verify-email` manual (atau form di login page)
+4. Paste token ke input field
+5. Klik "Verifikasi"
+6. Token valid? → emailVerified = true → Redirect ke /login dengan modal
+
+**Catatan:** Kedua method menggunakan token yang sama dari email. Jika token expired (> 25 menit), user harus register ulang.
+
+### Verification Endpoint
+
+#### GET /api/auth/register/verify-email
+
+Query parameter:
+```
+GET /api/auth/register/verify-email?token=<verification_token>
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "Email berhasil diverifikasi. Silakan login.",
+  "timestamp": "2026-03-05T10:45:30.123456Z",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "emailVerified": true,
+    "message": "Akun siap digunakan"
+  }
+}
+```
+
+**Error Response (400 Bad Request - Token Invalid):**
+```json
+{
+  "status": 400,
+  "message": "Token verifikasi tidak ditemukan atau sudah digunakan",
+  "timestamp": "2026-03-05T10:45:30.123456Z",
+  "data": null
+}
+```
+
+**Error Response (400 Bad Request - Token Expired):**
+```json
+{
+  "status": 400,
+  "message": "Token verifikasi telah kedaluwarsa. Silakan registrasi ulang.",
+  "timestamp": "2026-03-05T10:45:30.123456Z",
+  "data": null
+}
+```
+
+### Backend Implementation
+
+**User Model Fields:**
+```java
+@Column(name = "email_verification_token", length = 100)
+private String emailVerificationToken;  // UUID token
+
+@Column(name = "email_verification_token_expiry")
+private LocalDateTime emailVerificationTokenExpiry;  // Now + 25 minutes
+```
+
+**InvestorRegistrationServiceImpl & OwnerRegistrationServiceImpl:**
+```java
+// Token generation saat registration
+String verificationToken = UUID.randomUUID().toString().replace("-", "");
+user.setEmailVerificationToken(verificationToken);
+user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusMinutes(25));
+userRepository.save(user);
+```
+
+**EmailVerificationServiceImpl:**
+```java
+public void verifyEmail(String token) {
+    // 1. Find user by token
+    Optional<User> user = userRepository.findByEmailVerificationToken(token);
+    
+    if (user.isEmpty()) {
+        throw new BadRequestException("Token verifikasi tidak ditemukan atau sudah digunakan");
+    }
+    
+    // 2. Check if token expired
+    if (LocalDateTime.now().isAfter(user.get().getEmailVerificationTokenExpiry())) {
+        throw new BadRequestException("Token verifikasi telah kedaluwarsa. Silakan registrasi ulang.");
+    }
+    
+    // 3. Set emailVerified = true & clear token
+    User foundUser = user.get();
+    foundUser.setEmailVerified(true);
+    foundUser.setEmailVerificationToken(null);
+    foundUser.setEmailVerificationTokenExpiry(null);
+    userRepository.save(foundUser);
+}
+```
+
+**RegistrationController:**
+```java
+@GetMapping("/register/verify-email")
+public ResponseEntity<BaseResponseDTO<VerifyEmailResponse>> verifyEmail(
+        @RequestParam String token) {
+    
+    emailVerificationService.verifyEmail(token);
+    
+    return ResponseEntity.ok(
+        BaseResponseDTO.success(200, "Email berhasil diverifikasi. Silakan login.", 
+                new VerifyEmailResponse())
+    );
+}
+```
+
+### Email Content
+
+**Email Subject:** `Verifikasi Email Anda - IPFO SIFPI`
+
+**Email Body (HTML):**
+```
+Halo [USER_NAME],
+
+Terima kasih telah mendaftar di IPFO SIFPI.
+
+Untuk menyelesaikan pendaftaran, silakan verifikasi email Anda:
+
+[BUTTON: Verifikasi Email] → link ke /verify-email?token=xxxxx
+
+Atau, copy-paste kode berikut jika tombol tidak bekerja:
+Kode Verifikasi: [TOKEN_CODE]
+
+⏰ Link ini berlaku selama 25 MENIT dari waktu pendaftaran.
+⚠️ Jika tidak diverifikasi dalam 25 menit, silakan daftar ulang.
+
+---
+Jika Anda tidak melakukan pendaftaran ini, abaikan email ini.
+```
+
+### Frontend Integration
+
+#### /verify-email Page
+
+```tsx
+// pages/verify-email.tsx
+
+export default function VerifyEmailPage() {
+  const router = useRouter();
+  const { token } = useSearchParams();
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('');
+  
+  useEffect(() => {
+    if (!token) {
+      setStatus('error');
+      setMessage('Token tidak ditemukan');
+      return;
+    }
+    
+    // Auto-verify saat page load
+    verifyEmail(token);
+  }, [token]);
+  
+  const verifyEmail = async (token: string) => {
+    try {
+      const response = await fetch(
+        `/api/auth/register/verify-email?token=${token}`
+      );
+      
+      if (!response.ok) {
+        const error = await response.json();
+        setStatus('error');
+        setMessage(error.message || 'Verifikasi gagal');
+        return;
+      }
+      
+      const data = await response.json();
+      setStatus('success');
+      setMessage('Email berhasil diverifikasi!');
+      
+      // Show modal notification
+      showSuccessModal(() => {
+        router.push('/login');
+      });
+      
+    } catch (error) {
+      setStatus('error');
+      setMessage('Terjadi kesalahan. Silakan coba lagi.');
+    }
+  };
+  
+  return (
+    <div className="verify-email-container">
+      {status === 'loading' && (
+        <div>
+          <Spinner />
+          <p>Memverifikasi email...</p>
+        </div>
+      )}
+      
+      {status === 'success' && (
+        <div>
+          <Icon name="check-circle" size="64" color="green" />
+          <h2>Email Berhasil Diverifikasi!</h2>
+          <p>Silakan tunggu, kami akan redirect Anda ke halaman login...</p>
+        </div>
+      )}
+      
+      {status === 'error' && (
+        <div>
+          <Icon name="x-circle" size="64" color="red" />
+          <h2>Verifikasi Gagal</h2>
+          <p>{message}</p>
+          <p>Silakan <Link href="/register/investor">daftar ulang</Link></p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+#### Success Modal (Saat redirect ke login)
+
+```tsx
+// Modal component yang muncul setelah verifikasi berhasil
+
+function RegistrationSuccessModal({ onConfirm }: { onConfirm: () => void }) {
+  return (
+    <Modal isOpen={true} onClose={onConfirm}>
+      <Modal.Header>
+        <Icon name="check-circle" color="green" />
+        <h2>✅ Akun Anda Berhasil Terdaftar!</h2>
+      </Modal.Header>
+      
+      <Modal.Body>
+        <p>Email Anda telah berhasil diverifikasi.</p>
+        <p>Anda sekarang dapat login dan mengakses platform IPFO SIFPI.</p>
+      </Modal.Body>
+      
+      <Modal.Footer>
+        <Button onClick={onConfirm} variant="primary">
+          Lanjut ke Login
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+```
+
+### Manual Token Input (Optional - untuk jika link tidak bekerja)
+
+Bisa ditambahkan di `/verify-email` page atau di login page jika user belum verifikasi:
+
+```tsx
+// Optional: Manual token input form di /verify-email atau /login
+
+function ManualTokenVerificationForm() {
+  const [token, setToken] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch(
+        `/api/auth/register/verify-email?token=${token}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message);
+        return;
+      }
+      
+      // Success - show modal & redirect
+      showSuccessModal(() => window.location.href = '/login');
+      
+    } catch (err) {
+      setError('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="token">Masukkan Kode Verifikasi:</label>
+        <input
+          id="token"
+          type="text"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="Paste kode dari email"
+          required
+        />
+      </div>
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      <Button type="submit" disabled={loading}>
+        {loading ? 'Memverifikasi...' : 'Verifikasi'}
+      </Button>
+    </form>
+  );
+}
+```
+
+### Testing Checklist
+
+- ✅ Register investor → Email sent with verification link
+- ✅ Click link dalam 25 menit → Email verified, redirect ke login with modal
+- ✅ Modal shows "✅ Akun Anda Berhasil Terdaftar!"
+- ✅ Click OK di modal → Go to login page
+- ✅ Try token after 25 minutes → Get expiry error
+- ✅ Manual token input → Same as click link
+- ✅ Non-existent token → Get invalid error
+- ✅ Try already verified token → Get invalid error
+
+---
+
+## 4. ENDPOINT METADATA
 
 ### GET /api/auth/register/registration-options
 
@@ -462,7 +835,7 @@ Endpoint publik untuk mendapatkan daftar opsi yang valid untuk dropdown dan chec
 
 ---
 
-## 4. HTTP Status Code Reference
+## 5. HTTP Status Code Reference
 
 | Code | Scenario |
 |------|----------|
@@ -474,7 +847,7 @@ Endpoint publik untuk mendapatkan daftar opsi yang valid untuk dropdown dan chec
 
 ---
 
-## 5. Error Message Convention
+## 6. Error Message Convention
 
 Error messages dari service layer:
 - Field validation errors (dari `@Valid` annotation): Sesuai message di DTO
@@ -497,7 +870,7 @@ Error response wrapper dari GlobalExceptionHandler:
 
 ---
 
-## 6. Security Considerations
+## 7. Security Considerations
 
 1. **Password Hashing:**
    - Semua password harus di-hash dengan BCryptPasswordEncoder sebelum disimpan
@@ -518,7 +891,7 @@ Error response wrapper dari GlobalExceptionHandler:
 
 ---
 
-## 7. Implementation Notes
+## 8. Implementation Notes
 
 ### DTOs
 
@@ -644,7 +1017,7 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 
 ---
 
-## 8. Testing Checklist
+## 9. Testing Checklist
 
 ### Get Registration Options
 - ✅ GET /api/auth/register/registration-options → 200 OK with budgetOptions & sectorOptions
@@ -667,9 +1040,19 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 - ✅ agreePrivacy = false → 400 Bad Request
 - ✅ Missing required field → 400 Bad Request
 
+### Email Verification
+- ✅ Register → Email sent with verification link
+- ✅ Click link dalam 25 menit → Auto-verify, redirect ke /login with modal
+- ✅ Modal shows "✅ Akun Anda Berhasil Terdaftar!"
+- ✅ Click OK di modal → Stay on /login page
+- ✅ Try token after 25 minutes → Get expiry error
+- ✅ Manual token input → Same result as clicking link
+- ✅ Non-existent token → Get "token not found" error
+- ✅ Try already verified token → Get "already used" error
+
 ---
 
-## 9. API Integration Quick Start
+## 10. API Integration Quick Start
 
 ### Step 1: Get Registration Options
 ```bash
@@ -730,6 +1113,7 @@ curl -X POST http://localhost:8080/api/auth/register/investor \
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.0 | 2026-03-05 | Added Section 3: EMAIL VERIFICATION FLOW (25-min expiry, token expired = re-register, success modal on /login) |
 | 2.2 | 2026-03-05 | Final cleanup: User fields optimized (emailVerified + isActive only), event-driven email implemented, enum fields relocated to common/enums |
 | 2.1 | 2026-03-05 | Added 7 optional fields to InvestorProfile (preferredInvestmentInstrument, engagementModel, stagePreference, riskAppetite, esgStandards, localPresence, aumSize) for Investor Catalogue Template |
 | 2.0 | 2026-03-04 | Merged docs + added enum values + registration-options endpoint |

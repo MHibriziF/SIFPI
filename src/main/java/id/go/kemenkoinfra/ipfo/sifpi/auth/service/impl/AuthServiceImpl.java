@@ -42,6 +42,11 @@ public class AuthServiceImpl implements AuthService {
             throw new SecurityException("Email atau password salah.");
         }
 
+        // NEW: Check if email is verified
+        if (!user.isEmailVerified()) {
+            throw new SecurityException("Email Anda belum diverifikasi. Silakan cek email Anda untuk link verifikasi.");
+        }
+
         List<RolePermission> rolePermissions = rolePermissionRepository.findByRoleWithResource(user.getRole());
         AuthResponseDTO dto = authMapper.toDTO(user, rolePermissions);
 

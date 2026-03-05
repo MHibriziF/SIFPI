@@ -4,11 +4,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -18,28 +15,31 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.EqualsAndHashCode;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
+/**
+ * Temporary registration record - holds user data until email verification is completed.
+ * After successful email verification, data is transferred to User entity.
+ * This record is then deleted.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = {"role", "investorProfile"})
+@AllArgsConstructor
 @Entity
 @Table(
-    name = "users",
+    name = "pending_registrations",
     indexes = {
-        @Index(name = "idx_user_email", columnList = "email"),
-        @Index(name = "idx_user_role_id", columnList = "role_id")
+        @Index(name = "idx_pending_email", columnList = "email"),
+        @Index(name = "idx_pending_token", columnList = "email_verification_token"),
+        @Index(name = "idx_pending_created_at", columnList = "created_at")
     }
 )
-public class User {
+public class PendingRegistration {
 
-    @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -66,34 +66,18 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @Column(nullable = false)
-    private boolean emailVerified = false;
-
-    @Column(nullable = false)
-    private boolean active = true;
-
-    // Password setup token for new users (set password flow)
-    @Column(length = 100)
-    private String passwordSetupToken;
-
-    private LocalDateTime passwordSetupTokenExpiry;
-
-    // Email verification token (for email verification flow)
-    @Column(length = 100)
+    // Email verification token
+    @Column(nullable = false, length = 100)
     private String emailVerificationToken;
 
+    @Column(nullable = false)
     private LocalDateTime emailVerificationTokenExpiry;
 
-    // Investor profile relationship (optional - only for investors)
-    // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private InvestorProfile investorProfile;
+    // Additional data for investor profile (stored as JSON)
+    @Column(columnDefinition = "json")
+    private String investorProfileData; // JSON: {budgetInvestasi, sectorInterest: [...]}
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
 }

@@ -21,12 +21,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class InvestorRegistrationServiceImpl implements InvestorRegistrationService {
 
     private static final String ROLE_INVESTOR = "INVESTOR";
+    private static final int EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 25;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -80,14 +84,19 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(investorRole);
 
+        // Generate email verification token
+        String verificationToken = UUID.randomUUID().toString().replace("-", "");
+        user.setEmailVerificationToken(verificationToken);
+        user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusMinutes(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES));
+
         // Create investor profile and set bidirectional relationship
         InvestorProfile investorProfile = registrationMapper.toInvestorProfile(request);
         investorProfile.setUser(user);
         user.setInvestorProfile(investorProfile);
 
-        // Save user (cascade will save investor profile automatically)
+        // Save user to database (emailVerified = false initially, cascade will save investor profile automatically)
         User savedUser = userRepository.saveAndFlush(user);
-        log.info("Investor user created with id: {}, profile cascade-saved", savedUser.getId());
+        log.info("Investor user created with id: {}, profile cascade-saved, awaiting email verification", savedUser.getId());
 
         // Publish event for email sending (after transaction commits)
         eventPublisher.publishEvent(new InvestorRegisteredEvent(savedUser, request));
