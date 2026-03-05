@@ -51,7 +51,6 @@ public class PasswordServiceImpl implements PasswordService {
         // Clear token and activate account
         user.setPasswordSetupToken(null);
         user.setPasswordSetupTokenExpiry(null);
-        user.setVerified(true);
         user.setEmailVerified(true);
         user.setActive(true);
 
