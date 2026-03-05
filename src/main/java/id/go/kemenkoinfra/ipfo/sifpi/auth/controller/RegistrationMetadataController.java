@@ -1,7 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.auth.controller;
 
-import id.go.kemenkoinfra.ipfo.sifpi.auth.model.BudgetRange;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Sector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.BudgetRange;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

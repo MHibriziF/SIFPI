@@ -2,28 +2,24 @@ package id.go.kemenkoinfra.ipfo.sifpi.auth.service.impl;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.InvestorDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateInvestorRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.event.InvestorRegisteredEvent;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RegistrationMapper;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.model.BudgetRange;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.InvestorProfile;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.InvestorProfileRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.InvestorRegistrationService;
-import id.go.kemenkoinfra.ipfo.sifpi.common.config.EmailProperties;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.BudgetRange;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
-import id.go.kemenkoinfra.ipfo.sifpi.common.services.EmailService;
-import id.go.kemenkoinfra.ipfo.sifpi.common.utils.EmailTemplateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -34,12 +30,9 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final InvestorProfileRepository investorProfileRepository;
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
-    private final EmailTemplateUtil emailTemplateUtil;
-    private final EmailProperties emailProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public InvestorDTO registerInvestor(CreateInvestorRequest request) {
@@ -87,51 +80,18 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(investorRole);
 
-        // Save user first (JPA @PrePersist will set createdAt before persist)
-        User savedUser = userRepository.save(user);
-        log.info("Investor user created with id: {}", savedUser.getId());
-
-        // Create investor profile
+        // Create investor profile and set bidirectional relationship
         InvestorProfile investorProfile = registrationMapper.toInvestorProfile(request);
-        investorProfile.setUser(savedUser);
-        InvestorProfile savedProfile = investorProfileRepository.save(investorProfile);
-        log.info("Investor profile created for user id: {}", savedUser.getId());
+        investorProfile.setUser(user);
+        user.setInvestorProfile(investorProfile);
 
-        // Set bidirectional relationship
-        savedUser.setInvestorProfile(savedProfile);
-        userRepository.save(savedUser);
+        // Save user (cascade will save investor profile automatically)
+        User savedUser = userRepository.saveAndFlush(user);
+        log.info("Investor user created with id: {}, profile cascade-saved", savedUser.getId());
 
-        // Force load investor profile for DTO mapping
-        User userWithProfile = userRepository.findById(savedUser.getId())
-                .orElseThrow(() -> new NotFoundException("User", savedUser.getId().toString()));
+        // Publish event for email sending (after transaction commits)
+        eventPublisher.publishEvent(new InvestorRegisteredEvent(savedUser, request));
 
-        // Send welcome email
-        sendRegistrationEmail(userWithProfile, request);
-
-        return registrationMapper.toInvestorDTO(userWithProfile);
-    }
-
-    private void sendRegistrationEmail(User user, CreateInvestorRequest request) {
-        try {
-            String sectors = String.join(", ", request.getSectorInterest());
-            
-            String html = emailTemplateUtil.load("investor-registration", Map.of(
-                    "name", user.getName(),
-                    "email", user.getEmail(),
-                    "loginUrl", emailProperties.getLoginUrl(),
-                    "sectors", sectors,
-                    "budget", request.getBudgetInvestasi() != null ? request.getBudgetInvestasi() : "-"
-            ));
-
-            emailService.sendEmail(
-                    user.getEmail(),
-                    "Selamat Datang - Registrasi Investor SIFPI",
-                    html
-            );
-            log.info("Registration email sent successfully to: {}", user.getEmail());
-        } catch (Exception e) {
-            log.warn("Failed to send registration email to {}: {}", user.getEmail(), e.getMessage());
-            // Don't throw - registration is complete, email delivery is best-effort
-        }
+        return registrationMapper.toInvestorDTO(savedUser);
     }
 }

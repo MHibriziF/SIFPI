@@ -35,7 +35,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public LoginResult login(LoginRequest request) {
-        User user = userRepository.findByEmailAndDeletedAtIsNull(request.getEmail())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new SecurityException("Email atau password salah."));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -63,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthResponseDTO getCurrentUser(String email) {
-        User user = userRepository.findByEmailAndDeletedAtIsNull(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new SecurityException("Pengguna tidak ditemukan."));
 
         List<RolePermission> rolePermissions = rolePermissionRepository.findByRoleWithResource(user.getRole());

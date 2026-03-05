@@ -1,4 +1,4 @@
-package id.go.kemenkoinfra.ipfo.sifpi.auth.model;
+package id.go.kemenkoinfra.ipfo.sifpi.common.enums;
 
 import java.util.Arrays;
 import java.util.List;

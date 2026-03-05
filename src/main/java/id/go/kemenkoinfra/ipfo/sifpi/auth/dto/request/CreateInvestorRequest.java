@@ -53,9 +53,35 @@ public class CreateInvestorRequest {
     @Size(min = 3, message = "Minimal 3 sektor interest harus dipilih")
     private List<String> sectorInterest;
 
+    // ===== BAGIAN 3: ADDITIONAL INVESTOR PROFILE (OPTIONAL) =====
+
+    @Size(max = 255, message = "Preferred investment instrument maksimal 255 karakter")
+    private String preferredInvestmentInstrument;
+
+    @Size(max = 255, message = "Engagement model maksimal 255 karakter")
+    private String engagementModel;
+
+    // Stage preference - pilihan: Greenfield atau Brownfield
+    @Size(max = 255, message = "Pilih Stage preference Greenfield atau Brownfield")
+    private String stagePreference;
+
+    @Size(max = 255, message = "Risk appetite maksimal 255 karakter")
+    private String riskAppetite;
+
+    @Size(max = 255, message = "ESG standards maksimal 255 karakter")
+    private String esgStandards;
+
+    @Size(max = 255, message = "Local presence maksimal 255 karakter")
+    private String localPresence;
+
+    @Size(max = 255, message = "AUM size maksimal 255 karakter")
+    private String aumSize;
+
+    // ===== BAGIAN 4: KOMUNIKASI & PERSETUJUAN =====
+
+    private Boolean optInEmail = false;
+
     @NotNull(message = "Persetujuan kebijakan privasi wajib diisi")
     @AssertTrue(message = "Anda harus menyetujui syarat dan kebijakan privasi")
     private Boolean agreePrivacy;
-
-    private Boolean optInEmail = false;
 }

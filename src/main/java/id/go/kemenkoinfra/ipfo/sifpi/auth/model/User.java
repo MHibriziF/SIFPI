@@ -9,7 +9,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -68,9 +67,6 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
-    private boolean verified = false;
-
-    @Column(nullable = false)
     private boolean emailVerified = false;
 
     @Column(nullable = false)
@@ -83,8 +79,8 @@ public class User {
     private LocalDateTime passwordSetupTokenExpiry;
 
     // Investor profile relationship (optional - only for investors)
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "investor_profile_id", unique = true)
+    // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private InvestorProfile investorProfile;
 
     @CreationTimestamp
@@ -94,13 +90,4 @@ public class User {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onPrePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
-
-    private LocalDateTime deletedAt;
 }

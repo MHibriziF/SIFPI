@@ -14,7 +14,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -40,7 +39,7 @@ public class InvestorProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    // Investor-specific attributes
+    // Basic investor preferences
     @Column(length = 50)
     private String budgetRange;
 
@@ -53,6 +52,28 @@ public class InvestorProfile {
     @Column(nullable = false)
     private Boolean agreePrivacy = false;
 
+    // Additional investor catalogue fields (UM-5 extended requirements)
+    @Column(length = 100)
+    private String preferredInvestmentInstrument; // e.g., "Equity", "Debt", "Grant"
+
+    @Column(length = 100)
+    private String engagementModel; // e.g., "Direct Investment", "Co-investment", "Fund"
+
+    @Column(length = 50)
+    private String stagePreference; // "Greenfield", "Brownfield", or "Both"
+
+    @Column(length = 50)
+    private String riskAppetite; // e.g., "Low", "Medium", "High"
+
+    @Column(length = 255)
+    private String esgStandards; // ESG compliance standards
+
+    @Column(length = 255)
+    private String localPresence; // Geographic presence/office locations
+
+    @Column(length = 100)
+    private String aumSize; // Assets Under Management size range
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -60,11 +81,4 @@ public class InvestorProfile {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onPrePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
 }

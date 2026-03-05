@@ -55,7 +55,6 @@ public class ExecutiveServiceImpl implements ExecutiveService {
         User user = executiveMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setRole(executiveRole);
-        user.setVerified(false);
         user.setEmailVerified(false);
         user.setActive(false);
         user.setPasswordSetupToken(setupToken);

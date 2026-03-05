@@ -2,24 +2,21 @@ package id.go.kemenkoinfra.ipfo.sifpi.auth.service.impl;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.OwnerDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateOwnerRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.event.OwnerRegisteredEvent;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RegistrationMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.OwnerRegistrationService;
-import id.go.kemenkoinfra.ipfo.sifpi.common.config.EmailProperties;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
-import id.go.kemenkoinfra.ipfo.sifpi.common.services.EmailService;
-import id.go.kemenkoinfra.ipfo.sifpi.common.utils.EmailTemplateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -32,9 +29,7 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
     private final RoleRepository roleRepository;
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
-    private final EmailTemplateUtil emailTemplateUtil;
-    private final EmailProperties emailProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public OwnerDTO registerOwner(CreateOwnerRequest request) {
@@ -59,33 +54,13 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(ownerRole);
 
-        // Save user (JPA @PrePersist will set createdAt before persist)
-        User savedUser = userRepository.save(user);
+        // Save user
+        User savedUser = userRepository.saveAndFlush(user);
         log.info("Project owner registered successfully with id: {}", savedUser.getId());
 
-        // Send welcome email
-        sendRegistrationEmail(savedUser);
+        // Publish event untuk email (dikirim setelah DB commit berhasil)
+        eventPublisher.publishEvent(new OwnerRegisteredEvent(savedUser, request));
 
         return registrationMapper.toOwnerDTO(savedUser);
-    }
-
-    private void sendRegistrationEmail(User user) {
-        try {
-            String html = emailTemplateUtil.load("owner-registration", Map.of(
-                    "name", user.getName(),
-                    "email", user.getEmail(),
-                    "loginUrl", emailProperties.getLoginUrl()
-            ));
-
-            emailService.sendEmail(
-                    user.getEmail(),
-                    "Selamat Datang - Registrasi Project Owner SIFPI",
-                    html
-            );
-            log.info("Registration email sent successfully to: {}", user.getEmail());
-        } catch (Exception e) {
-            log.warn("Failed to send registration email to {}: {}", user.getEmail(), e.getMessage());
-            // Don't throw - registration is complete, email delivery is best-effort
-        }
     }
 }

@@ -91,7 +91,7 @@ POST /api/auth/register/owner
 | `phone` | String | Nomor telepon |
 | `roleName` | String | Role user: `PROJECT_OWNER` |
 | `isActive` | Boolean | Status aktif user (default: `true`) |
-| `isVerified` | Boolean | Status verifikasi email (default: `false` - pending admin review) |
+| `isVerified` | Boolean | Status verifikasi email (default: `false` - pending email verification) |
 | `createdAt` | ISO 8601 | Timestamp user created |
 
 ### Error Response (400 Bad Request - Password Mismatch)
@@ -169,6 +169,13 @@ POST /api/auth/register/investor
     "AIR_BERSIH",
     "ENERGI"
   ],
+  "preferredInvestmentInstrument": "Equity",
+  "engagementModel": "Direct Investment",
+  "stagePreference": "Greenfield",
+  "riskAppetite": "Moderate",
+  "esgStandards": "IFC Performance Standards",
+  "localPresence": "Jakarta Office",
+  "aumSize": "USD 100M",
   "optInEmail": true,
   "agreePrivacy": true
 }
@@ -187,6 +194,13 @@ POST /api/auth/register/investor
 | `confirmPassword` | String | ✅ Yes | Harus match dengan password | Konfirmasi password |
 | `budgetInvestasi` | String | ✅ Yes | Max 50 char, non-empty, dari enum BudgetRange | Rentang budget investasi (nilai: `<1`, `1-5`, `5-10`, `>10`) |
 | `sectorInterest` | Array<String> | ✅ Yes | Min 3 items, nilai dari enum Sector | Array sektor yang dipilih (minimal 3 sektor) |
+| `preferredInvestmentInstrument` | String | ❌ No | Max 255 char | Instrumen investasi yang disukai (e.g., Equity, Debt, Hybrid) |
+| `engagementModel` | String | ❌ No | Max 255 char | Model engagement investasi (e.g., Direct Investment, Co-Investment) |
+| `stagePreference` | String | ❌ No | Greenfield atau Brownfield | Preferensi stage proyek (pilihan: Greenfield, Brownfield) |
+| `riskAppetite` | String | ❌ No | Max 255 char | Tingkat risk appetite (e.g., Conservative, Moderate, Aggressive) |
+| `esgStandards` | String | ❌ No | Max 255 char | ESG standards yang diikuti (e.g., IFC Performance Standards) |
+| `localPresence` | String | ❌ No | Max 255 char | Kehadiran lokal (e.g., Jakarta Office, Regional Presence) |
+| `aumSize` | String | ❌ No | Max 255 char | Assets Under Management size (e.g., USD 100M, USD 1B+) |
 | `optInEmail` | Boolean | ❌ No | - | Opt-in untuk update katalog proyek via email (default: false) |
 | `agreePrivacy` | Boolean | ✅ Yes | Harus `true` | Persetujuan data benar & kebijakan privasi (REQUIRED TRUE) |
 
@@ -204,6 +218,15 @@ Gunakan **value** (bukan label) dalam request:
 | `MBGI` | MBGI |
 
 **Tip:** Frontend dapat memanggil `GET /api/auth/register/registration-options` untuk mendapatkan daftar lengkap opsi dengan labels.
+
+### Valid Stage Preference Options (Stage Preference)
+
+Gunakan salah satu dari pilihan berikut:
+
+| Value | Deskripsi |
+|-------|-----------|
+| `Greenfield` | Proyek baru (dari nol) |
+| `Brownfield` | Proyek yang sudah ada atau pengembangan |
 
 ### Valid Budget Range Options (Budget Investasi)
 
@@ -268,6 +291,13 @@ Gunakan **value** dalam request:
       "AIR_BERSIH",
       "ENERGI"
     ],
+    "preferredInvestmentInstrument": "Equity",
+    "engagementModel": "Direct Investment",
+    "stagePreference": "Greenfield",
+    "riskAppetite": "Moderate",
+    "esgStandards": "IFC Performance Standards",
+    "localPresence": "Jakarta Office",
+    "aumSize": "USD 100M",
     "optInEmail": true,
     "agreePrivacy": true,
     "createdAt": "2026-03-04T10:35:20.654321Z"
@@ -287,9 +317,16 @@ Gunakan **value** dalam request:
 | `phone` | String | Nomor telepon |
 | `roleName` | String | Role user: `INVESTOR` |
 | `isActive` | Boolean | Status aktif user (default: `true`) |
-| `isVerified` | Boolean | Status verifikasi (default: `false` - pending admin review) |
+| `isVerified` | Boolean | Status verifikasi email (default: `false` - pending email verification) |
 | `budgetInvestasi` | String | Rentang budget yang dipilih (value dari enum, e.g., `1-5`) |
 | `sectorInterest` | Array<String> | Daftar sektor yang dipilih (values dari enum, e.g., `[TRANSPORTASI, AIR_BERSIH]`) |
+| `preferredInvestmentInstrument` | String | Instrumen investasi yang disukai (optional, null jika tidak diisi) |
+| `engagementModel` | String | Model engagement investasi (optional, null jika tidak diisi) |
+| `stagePreference` | String | Preferensi stage proyek (optional, null jika tidak diisi) |
+| `riskAppetite` | String | Tingkat risk appetite (optional, null jika tidak diisi) |
+| `esgStandards` | String | ESG standards yang diikuti (optional, null jika tidak diisi) |
+| `localPresence` | String | Kehadiran lokal (optional, null jika tidak diisi) |
+| `aumSize` | String | Assets Under Management size (optional, null jika tidak diisi) |
 | `optInEmail` | Boolean | Status opt-in email |
 | `agreePrivacy` | Boolean | Status persetujuan kebijakan privasi |
 | `createdAt` | ISO 8601 | Timestamp user created |
@@ -512,6 +549,16 @@ public class CreateInvestorRequest {
     @NotBlank private String confirmPassword;
     @NotBlank private String budgetInvestasi;
     @NotEmpty @Size(min=3) private List<String> sectorInterest;
+    
+    // Additional optional fields (Investor Catalogue Template)
+    @Size(max=255) private String preferredInvestmentInstrument;
+    @Size(max=255) private String engagementModel;
+    @Size(max=255) private String stagePreference;
+    @Size(max=255) private String riskAppetite;
+    @Size(max=255) private String esgStandards;
+    @Size(max=255) private String localPresence;
+    @Size(max=255) private String aumSize;
+    
     private Boolean optInEmail = false;
     @NotNull @AssertTrue private Boolean agreePrivacy;
 }
@@ -549,8 +596,19 @@ public class InvestorDTO {
     private Boolean isVerified;
     private String budgetInvestasi;    // value dari enum (e.g., "1-5")
     private List<String> sectorInterest; // values dari enum (e.g., ["TRANSPORTASI", "AIR_BERSIH"])
+    
+    // Additional optional fields (may be null)
+    private String preferredInvestmentInstrument;
+    private String engagementModel;
+    private String stagePreference;
+    private String riskAppetite;
+    private String esgStandards;
+    private String localPresence;
+    private String aumSize;
+    
     private Boolean optInEmail;
     private Boolean agreePrivacy;
+    
     private LocalDateTime createdAt;
 }
 ```
@@ -647,10 +705,24 @@ curl -X POST http://localhost:8080/api/auth/register/investor \
     "confirmPassword": "InvestPass456!",
     "budgetInvestasi": "1-5",
     "sectorInterest": ["TRANSPORTASI", "AIR_BERSIH", "ENERGI"],
+    "preferredInvestmentInstrument": "Equity",
+    "engagementModel": "Direct Investment",
+    "stagePreference": "Greenfield",
+    "riskAppetite": "Moderate",
+    "esgStandards": "IFC Performance Standards",
+    "localPresence": "Jakarta Office",
+    "aumSize": "USD 100M",
     "optInEmail": true,
     "agreePrivacy": true
+```
+
+**Valid stagePreference values:**
+- `Greenfield` - Proyek baru
+- `Brownfield` - Proyek yang sudah ada/dikembangkan
   }' | jq
 ```
+
+**Note:** Field tambahan (preferredInvestmentInstrument, engagementModel, dll) bersifat **optional** dan bisa dihilangkan dari request jika tidak diperlukan.
 
 ---
 
@@ -658,6 +730,8 @@ curl -X POST http://localhost:8080/api/auth/register/investor \
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.2 | 2026-03-05 | Final cleanup: User fields optimized (emailVerified + isActive only), event-driven email implemented, enum fields relocated to common/enums |
+| 2.1 | 2026-03-05 | Added 7 optional fields to InvestorProfile (preferredInvestmentInstrument, engagementModel, stagePreference, riskAppetite, esgStandards, localPresence, aumSize) for Investor Catalogue Template |
 | 2.0 | 2026-03-04 | Merged docs + added enum values + registration-options endpoint |
 | 1.0 | 2026-03-01 | Initial specification |
 

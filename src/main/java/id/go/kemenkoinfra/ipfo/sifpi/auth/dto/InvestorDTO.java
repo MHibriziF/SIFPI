@@ -24,5 +24,14 @@ public class InvestorDTO {
     private Boolean optInEmail;
     private Boolean agreePrivacy;
     
+    // Additional investor profile fields (optional)
+    private String preferredInvestmentInstrument;
+    private String engagementModel;
+    private String stagePreference;
+    private String riskAppetite;
+    private String esgStandards;
+    private String localPresence;
+    private String aumSize;
+    
     private LocalDateTime createdAt;
 }
