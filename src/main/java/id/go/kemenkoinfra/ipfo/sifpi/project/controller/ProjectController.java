@@ -26,7 +26,7 @@ public class ProjectController {
     private final ProjectService projectService;
     private final ResponseUtil responseUtil;
 
-    @PreAuthorize("hasAnyRole('PROJECT_OWNER','ADMIN')")
+    @PreAuthorize("hasAuthority('PROJECT:CREATE')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponseDTO<ProjectResponseDTO>> createProject(
             @Valid @RequestPart("data") CreateProjectRequest request,
@@ -36,8 +36,7 @@ public class ProjectController {
 
         ProjectResponseDTO result = projectService.createProject(
                 request,
-                mapFile,
-                projectStructureFile,
+                mapFile,                projectStructureFile,
                 projectFile);
 
         return responseUtil.success(result, "Proyek berhasil dibuat.", HttpStatus.CREATED);
