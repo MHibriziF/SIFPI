@@ -81,19 +81,15 @@ public class Project {
     @NotBlank(message = "Bantuan pemerintah wajib diisi")
     private String governmentSupport;
 
-    @NotNull
     @DecimalMin(value = "0.0")
     private BigDecimal totalCapex;
 
-    @NotNull
     @DecimalMin(value = "0.0")
     private BigDecimal totalOpex;
 
-    @NotNull
     @DecimalMin(value = "0.0")
     private BigDecimal npv;
 
-    @NotNull
     @DecimalMin(value = "0.0")
     private BigDecimal irr;
 

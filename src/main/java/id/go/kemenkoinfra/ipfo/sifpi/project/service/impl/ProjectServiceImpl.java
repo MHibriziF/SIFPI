@@ -33,6 +33,7 @@ public class ProjectServiceImpl implements ProjectService {
             MultipartFile mapFile,
             MultipartFile projectStructureFile,
             MultipartFile projectFile) {
+        validateFinancialMetrics(request);
 
         String locationImageKey = storageService.upload(STORAGE_FOLDER, mapFile);
         String projectStructureImageKey = storageService.upload(STORAGE_FOLDER, projectStructureFile);
@@ -57,6 +58,25 @@ public class ProjectServiceImpl implements ProjectService {
 
         for (ProjectTimeline timeline : timelines) {
             timeline.setProject(project);
+        }
+    }
+
+    private void validateFinancialMetrics(CreateProjectRequest request) {
+        if (!Boolean.TRUE.equals(request.getIsFeasibilityStudy())) {
+            return;
+        }
+
+        if (request.getTotalCapex() == null) {
+            throw new IllegalArgumentException("totalCapex wajib diisi ketika isFeasibilityStudy bernilai true");
+        }
+        if (request.getTotalOpex() == null) {
+            throw new IllegalArgumentException("totalOpex wajib diisi ketika isFeasibilityStudy bernilai true");
+        }
+        if (request.getNpv() == null) {
+            throw new IllegalArgumentException("npv wajib diisi ketika isFeasibilityStudy bernilai true");
+        }
+        if (request.getIrr() == null) {
+            throw new IllegalArgumentException("irr wajib diisi ketika isFeasibilityStudy bernilai true");
         }
     }
 }

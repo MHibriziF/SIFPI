@@ -67,19 +67,15 @@ public class CreateProjectRequest {
     @NotBlank(message = "Bantuan pemerintah wajib diisi")
     private String governmentSupport;
 
-    @NotNull(message = "Total capex wajib diisi")
     @DecimalMin(value = "0.0", message = "Total capex minimal 0")
     private BigDecimal totalCapex;
 
-    @NotNull(message = "Total opex wajib diisi")
     @DecimalMin(value = "0.0", message = "Total opex minimal 0")
     private BigDecimal totalOpex;
 
-    @NotNull(message = "NPV wajib diisi")
     @DecimalMin(value = "0.0", message = "NPV minimal 0")
     private BigDecimal npv;
 
-    @NotNull(message = "IRR wajib diisi")
     @DecimalMin(value = "0.0", message = "IRR minimal 0")
     private BigDecimal irr;
 
