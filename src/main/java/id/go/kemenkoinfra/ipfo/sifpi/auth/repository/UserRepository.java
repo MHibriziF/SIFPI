@@ -10,12 +10,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findByEmailAndDeletedAtIsNull(String email);
-    Optional<User> findByIdAndDeletedAtIsNull(UUID id);
-    Page<User> findAllByDeletedAtIsNull(Pageable pageable);
-    boolean existsByEmail(String email);
-    
-    // For password management
+
     Optional<User> findByEmail(String email);
+    Optional<User> findById(UUID id);
+
+    Page<User> findAll(Pageable pageable);
+
+    boolean existsByEmail(String email);
+
+    // For password management
     Optional<User> findByPasswordSetupToken(String token);
+
+    // For email verification
+    Optional<User> findByEmailVerificationToken(String token);
 }
