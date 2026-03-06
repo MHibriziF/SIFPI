@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DataSeeder {
 
     private static final List<String> DEFAULT_ROLES = List.of(
-            "ADMIN", "INVESTOR", "PROJECT_OWNER", "EXECUTIVE"
+            "ADMIN", "INVESTOR", "PROJECT_OWNER", "EXECUTIVE", "PUBLIC"
     );
 
     private static final List<String> DEFAULT_RESOURCES = List.of(
@@ -34,6 +34,11 @@ public class DataSeeder {
             "INQUIRY",
             "NEWS",
             "VERIFICATION"
+    );
+
+    private static final List<String> PUBLIC_READ_RESOURCES = List.of(
+            "PROJECT",
+            "NEWS"
     );
 
     private final RoleRepository roleRepository;
@@ -49,6 +54,7 @@ public class DataSeeder {
             seedResources();
             seedAdminPermissions();
             seedProjectOwnerPermissions();
+            seedPublicPermissions();
             seedAdmin();
             seedUsers();
         };
@@ -121,6 +127,25 @@ public class DataSeeder {
             rp.setAction(action);
             rolePermissionRepository.save(rp);
             log.info("Permission PROJECT_OWNER dibuat: {}:{}", resourceName, action);
+        }
+    }
+
+    private void seedPublicPermissions() {
+        Role publicRole = roleRepository.findByName("PUBLIC")
+                .orElseThrow(() -> new IllegalStateException("Role PUBLIC belum ada."));
+
+        for (String resourceName : PUBLIC_READ_RESOURCES) {
+            Resource resource = resourceRepository.findById(resourceName)
+                    .orElseThrow(() -> new IllegalStateException("Resource " + resourceName + " belum ada."));
+
+            if (!rolePermissionRepository.existsByRoleAndResourceAndAction(publicRole, resource, Action.READ)) {
+                RolePermission rp = new RolePermission();
+                rp.setRole(publicRole);
+                rp.setResource(resource);
+                rp.setAction(Action.READ);
+                rolePermissionRepository.save(rp);
+                log.info("Permission PUBLIC dibuat: {}:{}", resourceName, Action.READ);
+            }
         }
     }
 

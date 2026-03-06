@@ -1,5 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.exception;
 
+import java.util.Date;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +39,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleConflict(ConflictException ex) {
         log.warn("Conflict: {}", ex.getMessage(), ex);
         return responseUtil.error(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BulkInsertValidationException.class)
+    public ResponseEntity<?> handleBulkInsertValidation(BulkInsertValidationException ex) {
+        log.warn("Bulk Insert Validation: {}", ex.getMessage());
+
+        BaseResponseDTO<Object> response = new BaseResponseDTO<>();
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+        response.setMessage(ex.getMessage());
+        response.setTimestamp(new Date());
+        response.setData(ex.getErrors());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
     
     @ExceptionHandler({
