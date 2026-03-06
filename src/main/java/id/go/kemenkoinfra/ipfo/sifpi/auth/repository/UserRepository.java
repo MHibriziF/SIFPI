@@ -24,10 +24,4 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("select lower(u.email) from User u where lower(u.email) in :emails")
     List<String> findExistingEmailsIgnoreCase(@Param("emails") Collection<String> emails);
-
-    // For password management
-    Optional<User> findByPasswordSetupToken(String token);
-
-    // For email verification
-    Optional<User> findByEmailVerificationToken(String token);
 }
