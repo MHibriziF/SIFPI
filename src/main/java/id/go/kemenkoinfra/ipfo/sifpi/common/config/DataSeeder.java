@@ -48,6 +48,7 @@ public class DataSeeder {
             seedRoles();
             seedResources();
             seedAdminPermissions();
+            seedProjectOwnerPermissions();
             seedAdmin();
             seedUsers();
         };
@@ -96,6 +97,30 @@ public class DataSeeder {
                     log.info("Permission ADMIN dibuat: {}:{}", resourceName, action);
                 }
             }
+        }
+    }
+
+    private void seedProjectOwnerPermissions() {
+        Role projectOwnerRole = roleRepository.findByName("PROJECT_OWNER")
+                .orElseThrow(() -> new IllegalStateException("Role PROJECT_OWNER belum ada."));
+
+        seedProjectOwnerPermission(projectOwnerRole, "PROJECT", Action.CREATE);
+        seedProjectOwnerPermission(projectOwnerRole, "PROJECT", Action.READ);
+        seedProjectOwnerPermission(projectOwnerRole, "PROJECT", Action.UPDATE);
+        seedProjectOwnerPermission(projectOwnerRole, "NEWS", Action.READ);
+    }
+
+    private void seedProjectOwnerPermission(Role projectOwnerRole, String resourceName, Action action) {
+        Resource resource = resourceRepository.findById(resourceName)
+                .orElseThrow(() -> new IllegalStateException("Resource " + resourceName + " belum ada."));
+
+        if (!rolePermissionRepository.existsByRoleAndResourceAndAction(projectOwnerRole, resource, action)) {
+            RolePermission rp = new RolePermission();
+            rp.setRole(projectOwnerRole);
+            rp.setResource(resource);
+            rp.setAction(action);
+            rolePermissionRepository.save(rp);
+            log.info("Permission PROJECT_OWNER dibuat: {}:{}", resourceName, action);
         }
     }
 
