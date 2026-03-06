@@ -11,6 +11,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.services.StorageService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.EditProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.ProjectTimelineRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
@@ -48,6 +49,11 @@ public interface ProjectMapper {
     @Mapping(target = "projectStructureImageUrl", ignore = true)
     @Mapping(target = "projectFileDownloadUrl", ignore = true)
     ProjectResponseDTO toDTO(Project project);
+
+    /**
+     * Map Project entity to simplified list item DTO (for my-projects endpoint)
+     */
+    ProjectListItemDTO toListItemDTO(Project project);
 
     default ProjectResponseDTO toDTO(Project project, StorageService storageService) {
         ProjectResponseDTO dto = toDTO(project);
