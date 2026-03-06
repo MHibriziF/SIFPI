@@ -70,16 +70,10 @@ public class User {
     private boolean emailVerified = false;
 
     @Column(nullable = false)
-    private boolean isVerified = false;
+    private boolean verified = false;
 
     @Column(nullable = false)
     private boolean active = true;
-
-    // Email verification token (for email verification flow - UM-4/5)
-    @Column(length = 100)
-    private String emailVerificationToken;
-
-    private LocalDateTime emailVerificationTokenExpiry;
 
     // Contact verification audit trail (for admin verification - UM-10)
     @Column(length = 255)

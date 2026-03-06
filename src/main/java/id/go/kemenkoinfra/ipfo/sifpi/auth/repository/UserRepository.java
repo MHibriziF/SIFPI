@@ -25,6 +25,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("select lower(u.email) from User u where lower(u.email) in :emails")
     List<String> findExistingEmailsIgnoreCase(@Param("emails") Collection<String> emails);
 
-    @Query("SELECT u FROM User u WHERE u.role.name = 'PROJECT_OWNER' AND u.isVerified = false AND u.emailVerified = true ORDER BY u.createdAt ASC")
+    @Query("SELECT u FROM User u WHERE u.role.name = 'PROJECT_OWNER' AND u.verified = false AND u.emailVerified = true ORDER BY u.createdAt ASC")
     Page<User> findUnverifiedProjectOwners(Pageable pageable);
 }

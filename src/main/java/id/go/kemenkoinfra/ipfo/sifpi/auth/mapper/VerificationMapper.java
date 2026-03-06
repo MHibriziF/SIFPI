@@ -9,6 +9,9 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 @Mapper(componentModel = "spring")
 public interface VerificationMapper {
 
+    @Mapping(target = "isVerified", expression = "java(user.isVerified())")
+    @Mapping(target = "verifiedBy", source = "verifiedBy")
+    @Mapping(target = "verifiedAt", source = "verifiedAt")
     @Mapping(target = "roleName", expression = "java(user.getRole().getName())")
     VerificationResponseDTO toVerificationDTO(User user);
 }
