@@ -7,5 +7,5 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
  * Event published after investor registration transaction commits.
  * Used to trigger email sending asynchronously after successful DB commit.
  */
-public record InvestorRegisteredEvent(User user, CreateInvestorRequest request) {
+public record InvestorRegisteredEvent(User user, CreateInvestorRequest request, String token) {
 }

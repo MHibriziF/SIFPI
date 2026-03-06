@@ -21,6 +21,8 @@ public interface ExecutiveMapper {
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "investorProfile", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     User toEntity(CreateExecutiveRequest request);
