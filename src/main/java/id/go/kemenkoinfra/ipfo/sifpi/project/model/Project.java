@@ -1,6 +1,6 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.model;
 
-import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectSector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -39,7 +39,7 @@ public class Project {
 
     @NotNull(message = "Sektor proyek wajib diisi")
     @Enumerated(EnumType.STRING)
-    private ProjectSector sector;
+    private Sector sector;
 
     @NotNull(message = "Status proyek wajib diisi")
     @Enumerated(EnumType.STRING)

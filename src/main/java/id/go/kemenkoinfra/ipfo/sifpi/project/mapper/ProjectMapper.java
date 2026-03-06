@@ -13,7 +13,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.EditProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.ProjectTimelineRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
-import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectSector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectTimeline;
 
@@ -82,14 +82,18 @@ public interface ProjectMapper {
         }
     }
 
-    default ProjectSector toSector(String sector) {
+    default Sector toSector(String sector) {
         if (sector == null || sector.isBlank()) {
             return null;
         }
-        return ProjectSector.valueOf(sector.trim().toUpperCase());
+        Sector parsedSector = Sector.fromValue(sector);
+        if (parsedSector == null) {
+            throw new IllegalArgumentException("Unknown project sector: " + sector);
+        }
+        return parsedSector;
     }
 
-    default String fromSector(ProjectSector sector) {
+    default String fromSector(Sector sector) {
         return sector == null ? null : sector.name();
     }
 
