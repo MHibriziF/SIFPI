@@ -9,6 +9,8 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.OwnerRegistrationService;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.UserTokenService;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.TokenType;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
     private static final int EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 25;
 
     private final UserRepository userRepository;
+    private final UserTokenService userTokenService;
     private final RoleRepository roleRepository;
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
@@ -58,17 +61,17 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(ownerRole);
 
-        // Generate email verification token
-        String verificationToken = UUID.randomUUID().toString().replace("-", "");
-        user.setEmailVerificationToken(verificationToken);
-        user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusMinutes(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES));
-
         // Save user to database (emailVerified = false initially)
         User savedUser = userRepository.saveAndFlush(user);
         log.info("Project owner registered successfully with id: {}, awaiting email verification", savedUser.getId());
 
+        // Generate and save email verification token
+        String verificationToken = userTokenService.createToken(
+                savedUser, TokenType.EMAIL_VERIFICATION,
+                LocalDateTime.now().plusMinutes(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES));
+
         // Publish event untuk email (dikirim setelah DB commit berhasil)
-        eventPublisher.publishEvent(new OwnerRegisteredEvent(savedUser, request));
+        eventPublisher.publishEvent(new OwnerRegisteredEvent(savedUser, request, verificationToken));
 
         return registrationMapper.toOwnerDTO(savedUser);
     }

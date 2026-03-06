@@ -7,5 +7,5 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
  * Event published after project owner registration transaction commits.
  * Used to trigger email sending asynchronously after successful DB commit.
  */
-public record OwnerRegisteredEvent(User user, CreateOwnerRequest request) {
+public record OwnerRegisteredEvent(User user, CreateOwnerRequest request, String token) {
 }
