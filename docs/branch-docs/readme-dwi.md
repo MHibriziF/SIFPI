@@ -1268,10 +1268,210 @@ Tim IPFO SIFPI
 
 ---
 
+## 11. DELETE USER (SOFT DELETE) - DEACTIVATE ACCOUNT
+
+### Overview
+
+Fitur untuk admin menonaktifkan akun pengguna (soft delete). Ketika akun di-deactivate, pengguna tidak bisa login. Admin dapat mengaktifkan kembali kapan saja. Fitur ini berlaku untuk **semua role pengguna** (Project Owner, Investor, Admin, Executive).
+
+### Endpoint
+
+```
+PATCH /api/admin/users/{email}/status
+```
+
+**Method:** PATCH  
+**Authentication:** Bearer Token (JWT)  
+**Authorization:** ADMIN role only  
+
+### Request
+
+**URL Parameter:**
+```
+{email} = email pengguna (e.g., budi.santoso@example.com)
+```
+
+**Request Body:**
+```json
+{
+  "isActive": false
+}
+```
+
+**Request Field Specification:**
+
+| Field | Tipe Data | Required | Valid Values | Deskripsi |
+|-------|-----------|----------|--------------|-----------|
+| `isActive` | Boolean | ✅ Yes | `true` atau `false` | Status aktif user. false = deactivate, true = activate |
+
+### Success Response (200 OK)
+
+```json
+{
+  "status": 200,
+  "message": "Status pengguna berhasil diperbarui.",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "name": "Budi Santoso",
+    "organization": "PT. Maju Jaya",
+    "isActive": false,
+    "changedBy": "admin@ipfo.go.id",
+    "changedAt": "2026-03-07T14:30:00",
+    "action": "DEACTIVATED",
+    "roleName": "PROJECT_OWNER"
+  }
+}
+```
+
+**Response Field Specification:**
+
+| Field | Tipe Data | Deskripsi |
+|-------|-----------|-----------|
+| `id` | UUID | User ID |
+| `email` | String | Email pengguna |
+| `name` | String | Nama lengkap pengguna |
+| `organization` | String | Organisasi pengguna |
+| `isActive` | Boolean | Status aktif saat ini (true = active, false = deactivate) |
+| `changedBy` | String | Email admin yang melakukan perubahan |
+| `changedAt` | ISO 8601 DateTime | Timestamp perubahan status |
+| `action` | String | Aksi yang dilakukan: `DEACTIVATED` atau `ACTIVATED` |
+| `roleName` | String | Role pengguna (PROJECT_OWNER, INVESTOR, ADMIN, EXECUTIVE) |
+
+### Error Response (404 Not Found)
+
+```json
+{
+  "status": 404,
+  "message": "User dengan email budi.santoso@example.com tidak ditemukan",
+  "data": null
+}
+```
+
+### Error Response (403 Forbidden - Non-Admin)
+
+```json
+{
+  "status": 403,
+  "message": "Akses ditolak. Hanya admin yang dapat mengubah status pengguna.",
+  "data": null
+}
+```
+
+### Business Logic
+
+1. **Validasi Admin:** Cek user yang melakukan request adalah ADMIN role → jika tidak, return 403 Forbidden
+2. **Cari User:** Query user by email (case-insensitive) → jika tidak ketemu, return 404 Not Found
+3. **Update Status:** Set field `active` = `isActive` (dari request)
+4. **Audit Trail:** Set field `changedBy` = admin email (dari JWT), `changedAt` = now(), `action` = "DEACTIVATED" atau "ACTIVATED"
+5. **Save & Return:** Save ke database, return UserStatusResponseDTO dengan 200 OK
+
+### Data Model
+
+**User Entity Fields (UM-11):**
+```java
+@Column(nullable = false)
+private boolean active = true;  // Status aktif user
+
+@Column(length = 255)
+private String changedBy;  // Email admin yang melakukan perubahan status
+
+private LocalDateTime changedAt;  // Timestamp perubahan status
+
+@Column(length = 50)
+private String action;  // "DEACTIVATED" atau "ACTIVATED"
+```
+
+### Use Cases
+
+#### Use Case 1: Deactivate User (Admin menonaktifkan akun)
+
+**Skenario:**
+1. Admin membuka halaman user management
+2. Admin menemukan user yang bermasalah (e.g., Budi Santoso)
+3. Admin klik tombol "Nonaktifkan Akun"
+4. Dialog confirm: "Akun ini akan dinonaktifkan. User tidak dapat login."
+5. Admin klik confirm
+6. Sistem call: `PATCH /api/admin/users/budi.santoso@example.com/status` dengan `isActive: false`
+7. Response success → Toast: "Akun berhasil dinonaktifkan"
+8. Halaman user management: status Budi berubah dari "Aktif" → "Tidak Aktif" (grayed out / disabled badge)
+
+**Database State:**
+```
+UPDATE users SET active = false, changed_by = 'admin@ipfo.go.id', changed_at = '2026-03-07 14:30:00', action = 'DEACTIVATED' WHERE email = 'budi.santoso@example.com'
+```
+
+#### Use Case 2: Reactivate User (Admin mengaktifkan kembali akun)
+
+**Skenario:**
+1. Admin membuka halaman user management
+2. Admin menemukan user yang sudah di-deactivate (e.g., Budi Santoso)
+3. Admin klik tombol "Aktifkan Akun"
+4. Dialog confirm: "Akun ini akan diaktifkan kembali. User dapat login."
+5. Admin klik confirm
+6. Sistem call: `PATCH /api/admin/users/budi.santoso@example.com/status` dengan `isActive: true`
+7. Response success → Toast: "Akun berhasil diaktifkan"
+8. Halaman user management: status Budi berubah dari "Tidak Aktif" → "Aktif"
+
+**Database State:**
+```
+UPDATE users SET active = true, changed_by = 'admin@ipfo.go.id', changed_at = '2026-03-07 15:00:00', action = 'ACTIVATED' WHERE email = 'budi.santoso@example.com'
+```
+
+### Impact on Login & Application
+
+**Deactivated User:**
+- ❌ Tidak dapat login (authentication fails)
+- ❌ Session invalid (jika sedang login, session langsung invalid)
+- ❌ Tidak dapat akses API endpoints (semua request return 401 Unauthorized)
+
+**Reactivated User:**
+- ✅ Dapat login kembali
+- ✅ Dapat mengakses semua features sesuai role
+- ✅ Data terdahulu tetap preserved (tidak ada hard delete)
+
+### Postman Testing Guide
+
+**Request:**
+```
+PATCH http://localhost:8080/api/admin/users/budi.santoso@example.com/status
+
+Headers:
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Content-Type: application/json
+
+Body (raw JSON):
+{
+  "isActive": false
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "Status pengguna berhasil diperbarui.",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "name": "Budi Santoso",
+    "organization": "PT. Maju Jaya",
+    "isActive": false,
+    "changedBy": "admin@ipfo.go.id",
+    "changedAt": "2026-03-07T14:30:00",
+    "action": "DEACTIVATED",
+    "roleName": "PROJECT_OWNER"
+  }
+}
+```
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 5.0 | 2026-03-07 | Added Section 11: DELETE USER (SOFT DELETE) - DEACTIVATE ACCOUNT (UM-11) - Admin endpoint `PATCH /api/admin/users/{email}/status` for all user roles with isActive toggle, audit trail (changedBy, changedAt, action) |
 | 4.0 | 2026-03-07 | Added Section 10: UPDATE USER CONTACT VERIFICATION STATUS (UM-10) - Admin verification endpoint `PATCH /api/admin/users/{email}/verify` for Project Owners with isVerified field, verifiedBy audit trail, email notifications |
 | 3.0 | 2026-03-05 | Added Section 3: EMAIL VERIFICATION FLOW (25-min expiry, token expired = re-register, success modal on /login) |
 | 2.2 | 2026-03-05 | Final cleanup: User fields optimized (emailVerified + isActive only), event-driven email implemented, enum fields relocated to common/enums |
