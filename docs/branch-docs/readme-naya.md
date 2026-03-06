@@ -1052,3 +1052,187 @@ Email dikirim via **SendGrid API** dari `noreply@mhibrizif.site`.## 🧪 Testing
 | Create dengan nama kosong | 400 Bad Request |
 | Create tanpa JWT token | 401 Unauthorized |
 | Create dengan role non-admin | 403 Forbidden |
+
+
+# PM-3: Read All Project (Project Owner)
+
+## Overview
+Endpoint untuk Project Owner melihat seluruh proyek yang telah mereka ajukan dan memantau status verifikasi.
+
+## Endpoint
+```
+GET /api/projects/my-projects
+```
+
+## Authentication
+- Required: Yes
+- Role: PROJECT_OWNER
+- Permission: PROJECT:READ
+
+## Request Parameters
+
+### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| status | ProjectStatus | No | - | Filter berdasarkan status proyek |
+| page | int | No | 0 | Nomor halaman (0-indexed) |
+| size | int | No | 10 | Jumlah item per halaman (max 100) |
+| sortBy | string | No | createdAt | Field untuk sorting (createdAt, name, etc.) |
+| sortDirection | string | No | desc | Arah sorting (asc/desc) |
+
+### Project Status Options
+- `DRAFT` - Proyek masih dalam draft
+- `DIAJUKAN` - Proyek sudah diajukan
+- `IN_REVIEW` - Proyek sedang dalam review
+- `PERBAIKAN_DATA` - Proyek perlu perbaikan data
+- `TERVERIFIKASI` - Proyek sudah terverifikasi
+- `TERPUBLIKASI` - Proyek sudah dipublikasikan
+
+## Response
+
+### Success Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Daftar proyek berhasil diambil.",
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "name": "Pembangunan Jalan Tol",
+        "sector": "TRANSPORTATION",
+        "status": "DIAJUKAN",
+        "location": "Jakarta - Bandung",
+        "description": "Proyek pembangunan jalan tol sepanjang 150 km",
+        "isSubmitted": true,
+        "createdAt": "2026-03-01T10:00:00",
+        "editedAt": "2026-03-05T14:30:00"
+      },
+      {
+        "id": 2,
+        "name": "PLTS Tenaga Surya",
+        "sector": "ENERGY",
+        "status": "DRAFT",
+        "location": "Bali",
+        "description": "Pembangkit listrik tenaga surya 50 MW",
+        "isSubmitted": false,
+        "createdAt": "2026-02-28T09:00:00",
+        "editedAt": "2026-03-04T16:20:00"
+      }
+    ],
+    "page": 0,
+    "size": 10,
+    "totalElements": 15,
+    "totalPages": 2,
+    "first": true,
+    "last": false
+  }
+}
+```
+
+## Example Usage
+
+### Get All My Projects (Default - Newest First)
+```bash
+GET /api/projects/my-projects
+```
+
+### Get My Projects - Page 2
+```bash
+GET /api/projects/my-projects?page=1&size=10
+```
+
+### Filter by Status - Only Submitted Projects
+```bash
+GET /api/projects/my-projects?status=DIAJUKAN
+```
+
+### Filter by Status - Only Draft Projects
+```bash
+GET /api/projects/my-projects?status=DRAFT
+```
+
+### Sort by Name (Ascending)
+```bash
+GET /api/projects/my-projects?sortBy=name&sortDirection=asc
+```
+
+### Sort by Creation Date (Oldest First)
+```bash
+GET /api/projects/my-projects?sortBy=createdAt&sortDirection=asc
+```
+
+### Combined Filters
+```bash
+GET /api/projects/my-projects?status=TERVERIFIKASI&page=0&size=20&sortBy=editedAt&sortDirection=desc
+```
+
+## Implementation Details
+
+### Service Layer
+- **Service**: `ReadProjectService`
+- **Implementation**: `ReadProjectServiceImpl`
+- **Method**: `getMyProjects(UUID ownerId, ProjectStatus status, int page, int size, String sortBy, String sortDirection)`
+
+### Key Features
+1. **Automatic User ID Extraction**: User ID diambil dari token JWT (@AuthenticationPrincipal)
+2. **Pagination**: Default 10 items per halaman, maksimal 100
+3. **Filtering**: Filter berdasarkan status proyek (optional)
+4. **Sorting**: Support sorting berdasarkan berbagai field (default: createdAt desc)
+5. **Security**: Hanya menampilkan proyek milik user yang sedang login
+
+### Database Query
+- Menggunakan `ProjectRepository.findByOwnerId()` untuk semua proyek
+- Menggunakan `ProjectRepository.findByOwnerIdAndStatus()` untuk filter status
+- Support Spring Data JPA pagination dan sorting
+
+## Error Handling
+
+### Unauthorized (401)
+User tidak authenticated atau token invalid
+```json
+{
+  "success": false,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+### Forbidden (403)
+User tidak memiliki permission PROJECT:READ
+```json
+{
+  "success": false,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+## Testing
+
+### Manual Testing dengan cURL
+```bash
+# Login sebagai project owner
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "projectowner@sifpi.go.id",
+    "password": "projectowner123"
+  }' \
+  -c cookies.txt
+
+# Get my projects
+curl -X GET http://localhost:8080/api/projects/my-projects \
+  -b cookies.txt
+
+# Get my projects with filters
+curl -X GET "http://localhost:8080/api/projects/my-projects?status=DIAJUKAN&page=0&size=10" \
+  -b cookies.txt
+```
+
+## Notes
+- Endpoint ini hanya bisa diakses oleh role PROJECT_OWNER
+- User hanya bisa melihat proyek yang mereka buat sendiri (berdasarkan ownerId)
+- Response menggunakan simplified DTO (`ProjectListItemDTO`) untuk performa lebih baik
+- Support pagination untuk menghindari response yang terlalu besar
