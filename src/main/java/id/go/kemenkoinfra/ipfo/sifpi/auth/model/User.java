@@ -72,21 +72,9 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
-    // Password setup token for new users (set password flow)
-    @Column(length = 100)
-    private String passwordSetupToken;
-
-    private LocalDateTime passwordSetupTokenExpiry;
-
-    // Email verification token (for email verification flow)
-    @Column(length = 100)
-    private String emailVerificationToken;
-
-    private LocalDateTime emailVerificationTokenExpiry;
-
     // Investor profile relationship (optional - only for investors)
     // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private InvestorProfile investorProfile;
 
     @CreationTimestamp
