@@ -70,7 +70,22 @@ public class User {
     private boolean emailVerified = false;
 
     @Column(nullable = false)
+    private boolean isVerified = false;
+
+    @Column(nullable = false)
     private boolean active = true;
+
+    // Email verification token (for email verification flow - UM-4/5)
+    @Column(length = 100)
+    private String emailVerificationToken;
+
+    private LocalDateTime emailVerificationTokenExpiry;
+
+    // Contact verification audit trail (for admin verification - UM-10)
+    @Column(length = 255)
+    private String verifiedBy;
+
+    private LocalDateTime verifiedAt;
 
     // Investor profile relationship (optional - only for investors)
     // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship

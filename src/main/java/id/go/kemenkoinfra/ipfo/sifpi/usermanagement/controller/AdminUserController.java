@@ -24,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-public class  AdminUserController {
+public class AdminUserController {
 
     private final ExecutiveService executiveService;
     private final BulkUserImportService bulkUserImportService;

@@ -1052,6 +1052,22 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 
 ---
 
+## 10. UPDATE USER CONTACT VERIFICATION STATUS (ADMIN) - UM-10
+
+Feature untuk admin memverifikasi akun Project Owner yang sudah terdaftar dan melakukan email verification. Hanya Project Owner dengan `emailVerified = true` dan `isVerified = false` yang akan ditampilkan di halaman verifikasi admin.
+
+### Difference with Email Verification (UM-4/5)
+
+| Aspek | Email Verification (UM-4/5) | Contact Verification (UM-10) |
+|-------|---------------------------|------------------------------|
+| **Siapa verify?** | User sendiri (click email link) | Admin |
+| **Kapan?** | Saat registrasi | Setelah email verified |
+| **Field** | `emailVerified` | `isVerified` |
+| **Tujuan** | Validasi email valid | Validasi identitas PO valid |
+| **Hasil** | User bisa login | User bisa submit proyek |
+
+---
+
 ## 10. API Integration Quick Start
 
 ### Step 1: Get Registration Options
@@ -1109,10 +1125,154 @@ curl -X POST http://localhost:8080/api/auth/register/investor \
 
 ---
 
+## 10. UPDATE USER CONTACT VERIFICATION STATUS (ADMIN) - UM-10
+
+### Overview
+Admin endpoint untuk memverifikasi akun Project Owner yang sudah terdaftar dan email-verified. Setelah admin verifikasi, PO baru bisa submit proyek ke platform.
+
+**Permission Required:** `ADMIN` role only
+
+**Endpoint:** `PATCH /api/admin/users/{email}/verify`
+
+### Request
+
+**Method:** `PATCH`
+
+**URL:** `http://localhost:8080/api/admin/users/budi.santoso@example.com/verify`
+
+**Headers:**
+```
+Authorization: Bearer <JWT_ADMIN_TOKEN>
+Content-Type: application/json
+```
+
+**Note:** Email dikirim sebagai path parameter, bukan request body.
+
+### Success Response (200 OK)
+
+```json
+{
+  "status": 200,
+  "message": "Project Owner berhasil diverifikasi.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "name": "Budi Santoso",
+    "organization": "PT Infrastruktur Indonesia",
+    "isVerified": true,
+    "verifiedBy": "admin@ipfo.go.id",
+    "verifiedAt": "2026-03-07T10:35:00.000+0000",
+    "roleName": "PROJECT_OWNER"
+  }
+}
+```
+
+### Error Responses
+
+#### 404 Not Found - User tidak ditemukan
+```json
+{
+  "status": 404,
+  "message": "Pengguna dengan email budi.unknown@example.com tidak ditemukan.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": null
+}
+```
+
+#### 400 Bad Request - Already Verified
+```json
+{
+  "status": 400,
+  "message": "Pengguna ini sudah terverifikasi sebelumnya.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": null
+}
+```
+
+#### 403 Forbidden - Not Admin
+```json
+{
+  "status": 403,
+  "message": "Akses ditolak.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": null
+}
+```
+
+### Testing di Postman
+
+**Setup:**
+
+1. Set method ke `PATCH`
+2. URL: `http://localhost:8080/api/admin/users/budi.santoso@example.com/verify`
+3. Go to **Headers** tab:
+   - Key: `Content-Type`, Value: `application/json`
+   - Key: `Authorization`, Value: `Bearer <JWT_ADMIN_TOKEN>`
+4. **Body:** Kosong (tidak perlu request body)
+5. Click **Send**
+
+**Expected Response:**
+- Status: `200 OK`
+- `isVerified` = `true`
+- `verifiedBy` = admin email
+- `verifiedAt` = current timestamp
+- Email terkirim ke PO: "Akun Anda telah diverifikasi. Anda sekarang dapat mengajukan proyek."
+
+### Implementation Details
+
+**User Model Fields:**
+```java
+@Column(nullable = false)
+private boolean isVerified = false;          // Contact verification status (admin)
+
+@Column(length = 255)
+private String verifiedBy;                   // Email of verifying admin
+
+private LocalDateTime verifiedAt;            // When verified
+```
+
+**Business Logic:**
+1. Admin calls `PATCH /api/admin/users/{email}/verify` dengan email PO di path parameter
+2. Sistem check:
+   - User dengan email tersebut ada? → 404 if not
+   - User sudah verified? → 400 if yes
+3. Set `isVerified = true`, `verifiedBy = admin_email`, `verifiedAt = now()`
+4. Save user ke database
+5. Send email to PO: "Akun Anda telah diverifikasi..."
+6. Return 200 dengan updated user data
+
+### Email Content
+
+**Subject:** Akun Anda Telah Diverifikasi - IPFO SIFPI
+
+**Body:**
+```
+Halo [USER_NAME],
+
+Kami dengan senang hati memberitahu bahwa akun Anda telah diverifikasi oleh administrator IPFO SIFPI.
+
+Anda sekarang dapat mengajukan proyek ke platform.
+
+Terima kasih telah bergabung dengan kami!
+
+Salam,
+Tim IPFO SIFPI
+```
+
+### Integration Notes
+
+- Endpoint ini akan di-call dari halaman "Manajemen Pengguna" (fitur teman Anda) 
+- Di halaman tersebut, admin akan: lihat list PO → filter/cari → klik "Verifikasi Akun" → dialog confirm → call endpoint ini
+- Response: toast notification "Berhasil diverifikasi" + badge status PO berubah dari "Pending Verification" → "Terverifikasi"
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 4.0 | 2026-03-07 | Added Section 10: UPDATE USER CONTACT VERIFICATION STATUS (UM-10) - Admin verification endpoint `PATCH /api/admin/users/{email}/verify` for Project Owners with isVerified field, verifiedBy audit trail, email notifications |
 | 3.0 | 2026-03-05 | Added Section 3: EMAIL VERIFICATION FLOW (25-min expiry, token expired = re-register, success modal on /login) |
 | 2.2 | 2026-03-05 | Final cleanup: User fields optimized (emailVerified + isActive only), event-driven email implemented, enum fields relocated to common/enums |
 | 2.1 | 2026-03-05 | Added 7 optional fields to InvestorProfile (preferredInvestmentInstrument, engagementModel, stagePreference, riskAppetite, esgStandards, localPresence, aumSize) for Investor Catalogue Template |
