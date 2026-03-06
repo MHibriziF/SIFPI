@@ -3,6 +3,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.common.exception;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -65,6 +66,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleSecurityException(SecurityException ex) {
         log.warn("Unauthorized: {}", ex.getMessage(), ex);
         return responseUtil.error("Unauthorized: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Forbidden: {}", ex.getMessage(), ex);
+        return responseUtil.error("Forbidden: " + ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
 
