@@ -13,8 +13,8 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.EditProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.ProjectTimelineRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
-import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectSector;
-import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectStatus;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectSector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectTimeline;
 
 @Mapper(componentModel = "spring")
@@ -62,7 +62,7 @@ public interface ProjectMapper {
             dto.setProjectStructureImageUrl(storageService.getPublicUrl(project.getProjectStructureImageKey()));
         }
         if (project.getProjectFileKey() != null && !project.getProjectFileKey().isBlank()) {
-            dto.setProjectFileDownloadUrl(storageService.getDownloadUrl(project.getProjectFileKey()));
+            dto.setProjectFileDownloadUrl(storageService.getPublicUrl(project.getProjectFileKey()));
         }
         return dto;
     }

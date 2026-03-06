@@ -1,4 +1,4 @@
-package id.go.kemenkoinfra.ipfo.sifpi.project.model;
+package id.go.kemenkoinfra.ipfo.sifpi.common.enums;
 
 public enum ProjectStatus {
     DRAFT("dibuat"),

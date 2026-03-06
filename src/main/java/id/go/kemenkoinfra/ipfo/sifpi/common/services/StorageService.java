@@ -12,7 +12,5 @@ public interface StorageService {
 
     String getPublicUrl(String key);
 
-    String getDownloadUrl(String key);
-
     record FileDownload(byte[] data, String contentType) {}
 }

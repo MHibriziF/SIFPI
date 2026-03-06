@@ -1,5 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.model;
 
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectSector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
