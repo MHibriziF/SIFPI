@@ -17,10 +17,4 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Page<User> findAll(Pageable pageable);
 
     boolean existsByEmail(String email);
-
-    // For password management
-    Optional<User> findByPasswordSetupToken(String token);
-
-    // For email verification
-    Optional<User> findByEmailVerificationToken(String token);
 }
