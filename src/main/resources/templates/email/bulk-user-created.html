@@ -2,46 +2,58 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akun Anda Telah Didaftarkan</title>
+    <title>Akun Anda Telah Didaftarkan - SIFPI</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #1a56db; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; background-color: #f9fafb; border-radius: 0 0 8px 8px; }
+        .info-box { background-color: #fff; border: 1px solid #e5e7eb; padding: 15px; margin: 20px 0; border-radius: 8px; }
+        .info-box p { margin: 8px 0; }
+        .label { font-weight: bold; color: #374151; }
+        .button {
+            display: inline-block;
+            background-color: #1a56db;
+            color: #ffffff !important;
+            padding: 12px 24px;
+            text-decoration: none !important;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-weight: 700;
+            border: 1px solid #1a56db;
+        }
+        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+    </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f5f7fb;font-family:Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f7fb;padding:24px 0;">
-    <tr>
-        <td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:24px;">
-                <tr>
-                    <td>
-                        <h2 style="margin:0 0 16px;color:#1f2937;">Akun Anda Telah Didaftarkan</h2>
-                        <p style="margin:0 0 12px;color:#374151;">Halo <strong>{{name}}</strong>,</p>
-                        <p style="margin:0 0 12px;color:#374151;">
-                            Admin telah mendaftarkan akun Anda di sistem SIFPI. Gunakan kredensial berikut untuk login:
-                        </p>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Selamat Datang di SIFPI</h1>
+        </div>
+        <div class="content">
+            <p>Yth. <strong>{{name}}</strong>,</p>
+            <p>Akun Anda telah didaftarkan oleh Administrator di Sistem Informasi Fasilitasi Proyek Infrastruktur (SIFPI).</p>
+            <p>Gunakan informasi berikut untuk login:</p>
 
-                        <table cellpadding="8" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;width:100%;margin:12px 0 16px;">
-                            <tr>
-                                <td style="color:#6b7280;width:130px;">Email</td>
-                                <td style="color:#111827;"><strong>{{email}}</strong></td>
-                            </tr>
-                            <tr>
-                                <td style="color:#6b7280;">Password</td>
-                                <td style="color:#111827;"><strong>{{password}}</strong></td>
-                            </tr>
-                        </table>
+            <div class="info-box">
+                <h3 style="margin-top: 0;">Informasi Akun Anda</h3>
+                <p><span class="label">Email:</span> {{email}}</p>
+                <p><span class="label">Password:</span> {{password}}</p>
+            </div>
 
-                        <p style="margin:0 0 20px;color:#374151;">
-                            Silakan login melalui tautan berikut:
-                            <a href="{{loginUrl}}" style="color:#2563eb;">{{loginUrl}}</a>
-                        </p>
+            <p>Silakan login melalui tautan berikut:</p>
+            <center>
+                <a href="{{loginUrl}}" class="button" style="display:inline-block;background-color:#1a56db;color:#ffffff !important;padding:12px 24px;text-decoration:none !important;border-radius:6px;font-weight:700;border:1px solid #1a56db;">Login ke SIFPI</a>
+            </center>
 
-                        <p style="margin:0;color:#6b7280;font-size:12px;">
-                            Email ini dikirim otomatis. Mohon tidak membalas email ini.
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
+            <p style="font-size: 12px; color: #6b7280;">
+                <strong>Catatan:</strong> Demi keamanan akun, segera ubah password Anda setelah berhasil login.
+            </p>
+        </div>
+        <div class="footer">
+            <p>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</p>
+            <p>&copy; 2026 SIFPI - Kementerian Koordinator Bidang Infrastruktur</p>
+        </div>
+    </div>
 </body>
 </html>
