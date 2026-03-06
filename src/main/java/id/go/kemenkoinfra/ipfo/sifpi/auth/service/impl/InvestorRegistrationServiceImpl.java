@@ -10,8 +10,10 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.InvestorRegistrationService;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.UserTokenService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.BudgetRange;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.TokenType;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
     private static final int EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 25;
 
     private final UserRepository userRepository;
+    private final UserTokenService userTokenService;
     private final RoleRepository roleRepository;
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
@@ -84,11 +87,6 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(investorRole);
 
-        // Generate email verification token
-        String verificationToken = UUID.randomUUID().toString().replace("-", "");
-        user.setEmailVerificationToken(verificationToken);
-        user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusMinutes(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES));
-
         // Create investor profile and set bidirectional relationship
         InvestorProfile investorProfile = registrationMapper.toInvestorProfile(request);
         investorProfile.setUser(user);
@@ -98,8 +96,13 @@ public class InvestorRegistrationServiceImpl implements InvestorRegistrationServ
         User savedUser = userRepository.saveAndFlush(user);
         log.info("Investor user created with id: {}, profile cascade-saved, awaiting email verification", savedUser.getId());
 
+        // Generate and save email verification token
+        String verificationToken = userTokenService.createToken(
+                savedUser, TokenType.EMAIL_VERIFICATION,
+                LocalDateTime.now().plusMinutes(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES));
+
         // Publish event for email sending (after transaction commits)
-        eventPublisher.publishEvent(new InvestorRegisteredEvent(savedUser, request));
+        eventPublisher.publishEvent(new InvestorRegisteredEvent(savedUser, request, verificationToken));
 
         return registrationMapper.toInvestorDTO(savedUser);
     }

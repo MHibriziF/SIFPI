@@ -22,11 +22,11 @@ public class RegistrationMetadataController {
     public ResponseEntity<Map<String, Object>> getRegistrationOptions() {
         List<Map<String, String>> budgetOptions = Arrays.stream(BudgetRange.values())
                 .map(b -> Map.of("value", b.getValue(), "label", b.getLabel()))
-                .collect(Collectors.toList());
+                .toList();
 
         List<Map<String, String>> sectorOptions = Arrays.stream(Sector.values())
                 .map(s -> Map.of("value", s.getValue(), "label", s.getLabel()))
-                .collect(Collectors.toList());
+                .toList();
 
         Map<String, Object> body = Map.of(
                 "budgetOptions", budgetOptions,
