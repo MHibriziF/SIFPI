@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akun Anda Telah Didaftarkan</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f7fb;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f7fb;padding:24px 0;">
+    <tr>
+        <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:24px;">
+                <tr>
+                    <td>
+                        <h2 style="margin:0 0 16px;color:#1f2937;">Akun Anda Telah Didaftarkan</h2>
+                        <p style="margin:0 0 12px;color:#374151;">Halo <strong>{{name}}</strong>,</p>
+                        <p style="margin:0 0 12px;color:#374151;">
+                            Admin telah mendaftarkan akun Anda di sistem SIFPI. Gunakan kredensial berikut untuk login:
+                        </p>
+
+                        <table cellpadding="8" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;width:100%;margin:12px 0 16px;">
+                            <tr>
+                                <td style="color:#6b7280;width:130px;">Email</td>
+                                <td style="color:#111827;"><strong>{{email}}</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#6b7280;">Password</td>
+                                <td style="color:#111827;"><strong>{{password}}</strong></td>
+                            </tr>
+                        </table>
+
+                        <p style="margin:0 0 20px;color:#374151;">
+                            Silakan login melalui tautan berikut:
+                            <a href="{{loginUrl}}" style="color:#2563eb;">{{loginUrl}}</a>
+                        </p>
+
+                        <p style="margin:0;color:#6b7280;font-size:12px;">
+                            Email ini dikirim otomatis. Mohon tidak membalas email ini.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

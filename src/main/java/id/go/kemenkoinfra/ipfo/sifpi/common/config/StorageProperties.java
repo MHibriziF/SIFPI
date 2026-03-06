@@ -9,6 +9,7 @@ import lombok.Data;
 public class StorageProperties {
 
     private String endpoint;
+    private String publicUrl;
     private String accessKey;
     private String secretKey;
     private String bucketName;

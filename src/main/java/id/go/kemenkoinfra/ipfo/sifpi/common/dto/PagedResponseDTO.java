@@ -4,9 +4,13 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
+@AllArgsConstructor
 public class PagedResponseDTO<T> {
     private final List<T> content;
     private final int page;
