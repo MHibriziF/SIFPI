@@ -5,7 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
 
-public interface ProjectService {
+public interface CreateProjectService {
 
     ProjectResponseDTO createProject(
             CreateProjectRequest request,

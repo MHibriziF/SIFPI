@@ -18,12 +18,12 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.mapper.ProjectMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectTimeline;
 import id.go.kemenkoinfra.ipfo.sifpi.project.repository.ProjectRepository;
-import id.go.kemenkoinfra.ipfo.sifpi.project.service.ProjectService;
+import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class ProjectServiceImpl implements ProjectService {
+public class CreateProjectServiceImpl implements CreateProjectService {
 
     private static final String STORAGE_FOLDER = "projects";
 

@@ -14,7 +14,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
-import id.go.kemenkoinfra.ipfo.sifpi.project.service.ProjectService;
+import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProjectController {
 
-    private final ProjectService projectService;
+    private final CreateProjectService createProjectService;
     private final ResponseUtil responseUtil;
 
     @PreAuthorize("hasAuthority('PROJECT:CREATE')")
@@ -34,9 +34,10 @@ public class ProjectController {
             @RequestPart("projectStructureFile") MultipartFile projectStructureFile,
             @RequestPart("projectFile") MultipartFile projectFile) {
 
-        ProjectResponseDTO result = projectService.createProject(
+        ProjectResponseDTO result = createProjectService.createProject(
                 request,
-                mapFile,                projectStructureFile,
+                mapFile,
+                projectStructureFile,
                 projectFile);
 
         return responseUtil.success(result, "Proyek berhasil dibuat.", HttpStatus.CREATED);
