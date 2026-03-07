@@ -4,8 +4,10 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
@@ -19,4 +21,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * Find projects by owner ID and status with pagination
      */
     Page<Project> findByOwnerIdAndStatus(UUID ownerId, ProjectStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"timelines", "revisions"})
+    List<Project> findAllByIdIn(List<Long> ids);
 }
