@@ -29,11 +29,14 @@ public class UserServiceImpl implements UserService {
         String searchTerm = (search != null && !search.isBlank()) ? search : "";
         String organisasiParam = (organisasi != null) ? organisasi.toLowerCase() : null;
 
-        Page<User> userPage = userRepository.findAllByFilters(
-                role, isVerified, isActive, organisasiParam, searchTerm, pageable
-        );
+        // Page<User> userPage = userRepository.findAllByFilters(
+        //         role, isVerified, isActive, organisasiParam, searchTerm, pageable
+        // );
 
-        log.debug("Retrieved {} users for page {}", userPage.getNumberOfElements(), pageable.getPageNumber());
+        // log.debug("Retrieved {} users for page {}", userPage.getNumberOfElements(), pageable.getPageNumber());
+            Page<User> userPage = userRepository.findAll(pageable);
+    
+            log.debug("Retrieved {} users for page {}", userPage.getNumberOfElements(), pageable.getPageNumber());
 
         return userPage.map(userMapper::toUserDTO);
     }

@@ -36,8 +36,8 @@ public class JwtServiceImpl implements JwtService {
         Date expiry = new Date(now.getTime() + jwtProperties.getExpirationMs());
 
         return Jwts.builder()
-                .subject(subject)
                 .claims(extraClaims)
+                .subject(subject)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)

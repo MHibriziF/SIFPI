@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DataSeeder {
 
     private static final List<String> DEFAULT_ROLES = List.of(
-            "ADMIN", "INVESTOR", "PROJECT_OWNER", "EXECUTIVE"
+            "ADMIN", "INVESTOR", "PROJECT_OWNER", "EXECUTIVE", "PUBLIC"
     );
 
     private static final List<String> DEFAULT_RESOURCES = List.of(
@@ -34,6 +34,11 @@ public class DataSeeder {
             "INQUIRY",
             "NEWS",
             "VERIFICATION"
+    );
+
+    private static final List<String> PUBLIC_READ_RESOURCES = List.of(
+            "PROJECT",
+            "NEWS"
     );
 
     private final RoleRepository roleRepository;
@@ -48,6 +53,8 @@ public class DataSeeder {
             seedRoles();
             seedResources();
             seedAdminPermissions();
+            seedProjectOwnerPermissions();
+            seedPublicPermissions();
             seedAdmin();
             seedUsers();
         };
@@ -95,6 +102,49 @@ public class DataSeeder {
                     rolePermissionRepository.save(rp);
                     log.info("Permission ADMIN dibuat: {}:{}", resourceName, action);
                 }
+            }
+        }
+    }
+
+    private void seedProjectOwnerPermissions() {
+        Role projectOwnerRole = roleRepository.findByName("PROJECT_OWNER")
+                .orElseThrow(() -> new IllegalStateException("Role PROJECT_OWNER belum ada."));
+
+        seedProjectOwnerPermission(projectOwnerRole, "PROJECT", Action.CREATE);
+        seedProjectOwnerPermission(projectOwnerRole, "PROJECT", Action.READ);
+        seedProjectOwnerPermission(projectOwnerRole, "PROJECT", Action.UPDATE);
+        seedProjectOwnerPermission(projectOwnerRole, "NEWS", Action.READ);
+    }
+
+    private void seedProjectOwnerPermission(Role projectOwnerRole, String resourceName, Action action) {
+        Resource resource = resourceRepository.findById(resourceName)
+                .orElseThrow(() -> new IllegalStateException("Resource " + resourceName + " belum ada."));
+
+        if (!rolePermissionRepository.existsByRoleAndResourceAndAction(projectOwnerRole, resource, action)) {
+            RolePermission rp = new RolePermission();
+            rp.setRole(projectOwnerRole);
+            rp.setResource(resource);
+            rp.setAction(action);
+            rolePermissionRepository.save(rp);
+            log.info("Permission PROJECT_OWNER dibuat: {}:{}", resourceName, action);
+        }
+    }
+
+    private void seedPublicPermissions() {
+        Role publicRole = roleRepository.findByName("PUBLIC")
+                .orElseThrow(() -> new IllegalStateException("Role PUBLIC belum ada."));
+
+        for (String resourceName : PUBLIC_READ_RESOURCES) {
+            Resource resource = resourceRepository.findById(resourceName)
+                    .orElseThrow(() -> new IllegalStateException("Resource " + resourceName + " belum ada."));
+
+            if (!rolePermissionRepository.existsByRoleAndResourceAndAction(publicRole, resource, Action.READ)) {
+                RolePermission rp = new RolePermission();
+                rp.setRole(publicRole);
+                rp.setResource(resource);
+                rp.setAction(Action.READ);
+                rolePermissionRepository.save(rp);
+                log.info("Permission PUBLIC dibuat: {}:{}", resourceName, Action.READ);
             }
         }
     }

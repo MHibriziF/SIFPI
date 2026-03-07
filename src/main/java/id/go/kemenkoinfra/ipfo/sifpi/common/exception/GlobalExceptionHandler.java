@@ -1,20 +1,18 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.exception;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import java.util.Date;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-
+import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +39,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleConflict(ConflictException ex) {
         log.warn("Conflict: {}", ex.getMessage(), ex);
         return responseUtil.error(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BulkInsertValidationException.class)
+    public ResponseEntity<?> handleBulkInsertValidation(BulkInsertValidationException ex) {
+        log.warn("Bulk Insert Validation: {}", ex.getMessage());
+
+        BaseResponseDTO<Object> response = new BaseResponseDTO<>();
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+        response.setMessage(ex.getMessage());
+        response.setTimestamp(new Date());
+        response.setData(ex.getErrors());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
     
     @ExceptionHandler({
@@ -73,28 +84,12 @@ public class GlobalExceptionHandler {
         return responseUtil.error("Unauthorized: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 
-
-    // === Request parsing exceptions ===
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<?> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        if (ex.getCause() instanceof InvalidFormatException ife) {
-            String value = String.valueOf(ife.getValue());
-            Class<?> targetType = ife.getTargetType();
-            if (targetType != null && targetType.isEnum()) {
-                String valid = Arrays.stream(targetType.getEnumConstants())
-                        .map(Object::toString)
-                        .collect(Collectors.joining(", "));
-                return responseUtil.error(
-                        "Nilai '" + value + "' tidak valid. Nilai yang diterima: " + valid,
-                        HttpStatus.BAD_REQUEST);
-            }
-            return responseUtil.error(
-                    "Format tidak valid untuk nilai '" + value + "'.",
-                    HttpStatus.BAD_REQUEST);
-        }
-        return responseUtil.error("Format permintaan tidak dapat dibaca.", HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Forbidden: {}", ex.getMessage(), ex);
+        return responseUtil.error("Forbidden: " + ex.getMessage(), HttpStatus.FORBIDDEN);
     }
+
 
     // === Validation-related exceptions ===
 

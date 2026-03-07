@@ -6,7 +6,9 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -26,7 +28,7 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = "role")
+@ToString(exclude = {"role", "investorProfile"})
 @Entity
 @Table(
     name = "users",
@@ -55,7 +57,7 @@ public class User {
     private String phone;
 
     @Column(length = 255)
-    private String organisasi;
+    private String organization;
 
     @Column(length = 100)
     private String jabatan;
@@ -65,19 +67,15 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
-    private boolean isVerified = false;
-
-    @Column(nullable = false)
     private boolean emailVerified = false;
 
     @Column(nullable = false)
-    private boolean isActive = true;
+    private boolean active = true;
 
-    // Password setup token for new users (set password flow)
-    @Column(length = 100)
-    private String passwordSetupToken;
-
-    private LocalDateTime passwordSetupTokenExpiry;
+    // Investor profile relationship (optional - only for investors)
+    // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private InvestorProfile investorProfile;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -86,6 +84,4 @@ public class User {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    private LocalDateTime deletedAt;
 }

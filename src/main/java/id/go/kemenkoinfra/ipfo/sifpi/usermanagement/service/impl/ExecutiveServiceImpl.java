@@ -12,7 +12,9 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.UserTokenService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.config.EmailProperties;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.TokenType;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.services.EmailService;
@@ -33,6 +35,7 @@ public class ExecutiveServiceImpl implements ExecutiveService {
     private static final int TOKEN_EXPIRY_HOURS = 24;
 
     private final UserRepository userRepository;
+    private final UserTokenService userTokenService;
     private final RoleRepository roleRepository;
     private final ExecutiveMapper executiveMapper;
     private final PasswordEncoder passwordEncoder;
@@ -50,18 +53,17 @@ public class ExecutiveServiceImpl implements ExecutiveService {
         Role executiveRole = roleRepository.findByName(EXECUTIVE_ROLE_NAME)
                 .orElseThrow(() -> new NotFoundException("Role", EXECUTIVE_ROLE_NAME));
 
-        String setupToken = UUID.randomUUID().toString().replace("-", "");
-
         User user = executiveMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setRole(executiveRole);
-        user.setVerified(false);
         user.setEmailVerified(false);
         user.setActive(false);
-        user.setPasswordSetupToken(setupToken);
-        user.setPasswordSetupTokenExpiry(LocalDateTime.now().plusHours(TOKEN_EXPIRY_HOURS));
 
         User savedUser = userRepository.save(user);
+
+        String setupToken = userTokenService.createToken(
+                savedUser, TokenType.PASSWORD_SETUP,
+                LocalDateTime.now().plusHours(TOKEN_EXPIRY_HOURS));
         log.info("Executive account created for email: {}, awaiting password setup", savedUser.getEmail());
 
         sendInvitationEmail(savedUser.getName(), savedUser.getEmail(), setupToken);

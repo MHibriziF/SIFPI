@@ -76,9 +76,7 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public String getPublicUrl(String key) {
-        String endpoint = storageProperties.getEndpoint();
-        String bucket = storageProperties.getBucketName();
-        return endpoint + "/" + bucket + "/" + key;
+        return storageProperties.getPublicUrl() + "/" + key;
     }
 
     private String getExtension(String filename) {

@@ -43,3 +43,7 @@ logs/
 
 ### LLM Assistant ###
 .claude
+
+### MCP ###
+
+.mcp.json
