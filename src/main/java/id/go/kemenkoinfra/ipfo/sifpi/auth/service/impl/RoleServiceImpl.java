@@ -3,6 +3,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.auth.service.impl;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -131,7 +132,7 @@ public class RoleServiceImpl implements RoleService {
 
         // Capture after state and persist audit log
         String after = buildSnapshot(role, newPermissions);
-        String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+        String actor = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         saveAuditLog(role, ACTION_UPDATE, actor, buildChangeDetails(before, after));
 
         log.info("Role '{}' berhasil diperbarui oleh '{}'.", role.getName(), actor);
