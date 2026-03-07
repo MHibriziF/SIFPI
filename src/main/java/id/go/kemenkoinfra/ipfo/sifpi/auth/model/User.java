@@ -77,12 +77,6 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private InvestorProfile investorProfile;
 
-    // Password setup token for new users (set password flow)
-    @Column(length = 100)
-    private String passwordSetupToken;
-
-    private LocalDateTime passwordSetupTokenExpiry;
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
