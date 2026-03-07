@@ -2,7 +2,6 @@ package id.go.kemenkoinfra.ipfo.sifpi.user.controller;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,14 +29,18 @@ public class UserController {
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponseDTO<PagedResponseDTO<UserDTO>>> getAllUsers(
-            @PageableDefault(size = 4, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 4) Pageable pageable,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) Boolean isVerified,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String organisasi,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String sortDirection) {
 
-        Page<UserDTO> userPage = userService.getAllUsers(pageable, role, isVerified, isActive, organisasi, search);
+        Page<UserDTO> userPage = userService.getAllUsers(
+                pageable, role, isVerified, isActive, organisasi, search, sortBy, sortDirection);
         return responseUtil.successPaged(userPage, "Berhasil.", HttpStatus.OK);
     }
 }
+

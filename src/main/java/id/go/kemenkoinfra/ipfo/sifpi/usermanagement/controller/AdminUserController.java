@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +18,8 @@ import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertResultDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertUserRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.CreateExecutiveRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.ExecutiveDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UserDetailDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.AdminUserDetailService;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.BulkUserImportService;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.ExecutiveService;
 import jakarta.validation.Valid;
@@ -24,10 +28,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-public class  AdminUserController {
+public class AdminUserController {
 
     private final ExecutiveService executiveService;
     private final BulkUserImportService bulkUserImportService;
+    private final AdminUserDetailService adminUserDetailService;
     private final ResponseUtil responseUtil;
 
     @PostMapping("/register/executive")
@@ -46,5 +51,18 @@ public class  AdminUserController {
 
         BulkInsertResultDTO result = bulkUserImportService.bulkInsertUsers(requests);
         return responseUtil.success(result, "Bulk insert user berhasil.", HttpStatus.CREATED);
+    }
+
+    /**
+     * UM-7 — Read detail account (admin only).
+     * The {email:.+} pattern ensures dots in the email are not truncated by Spring MVC.
+     */
+    @GetMapping("/admin/users/{email:.+}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponseDTO<UserDetailDTO>> getUserDetail(
+            @PathVariable String email) {
+
+        UserDetailDTO detail = adminUserDetailService.getUserDetailByEmail(email);
+        return responseUtil.success(detail, "Berhasil.", HttpStatus.OK);
     }
 }

@@ -12,6 +12,9 @@ import id.go.kemenkoinfra.ipfo.sifpi.user.dto.UserDTO;
 public interface UserMapper {
 
     @Mapping(source = "role", target = "role", qualifiedByName = "roleToString")
+    @Mapping(source = "organization", target = "organisasi")
+    @Mapping(source = "emailVerified", target = "isVerified")
+    @Mapping(source = "active", target = "isActive")
     UserDTO toUserDTO(User user);
 
     @Named("roleToString")

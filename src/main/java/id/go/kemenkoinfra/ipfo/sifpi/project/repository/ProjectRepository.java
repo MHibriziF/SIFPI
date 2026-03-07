@@ -19,4 +19,9 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * Find projects by owner ID and status with pagination
      */
     Page<Project> findByOwnerIdAndStatus(UUID ownerId, ProjectStatus status, Pageable pageable);
+
+    /**
+     * Count total projects owned by a user — used for admin user detail (UM-7)
+     */
+    long countByOwnerId(UUID ownerId);
 }

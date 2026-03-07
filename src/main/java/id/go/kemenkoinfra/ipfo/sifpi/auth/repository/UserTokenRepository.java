@@ -11,4 +11,5 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.enums.TokenType;
 public interface UserTokenRepository extends JpaRepository<UserToken, UUID> {
     Optional<UserToken> findByToken(String token);
     Optional<UserToken> findByTokenAndType(String token, TokenType type);
+    Optional<UserToken> findTopByUserIdOrderByCreatedAtDesc(UUID userId);
 }

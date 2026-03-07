@@ -8,5 +8,6 @@ import id.go.kemenkoinfra.ipfo.sifpi.user.dto.UserDTO;
 public interface UserService {
 
     Page<UserDTO> getAllUsers(Pageable pageable, String role, Boolean isVerified,
-                              Boolean isActive, String organisasi, String search);
+                              Boolean isActive, String organisasi, String search,
+                              String sortBy, String sortDirection);
 }
