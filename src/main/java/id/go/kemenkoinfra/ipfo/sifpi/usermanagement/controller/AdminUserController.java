@@ -5,6 +5,9 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +19,9 @@ import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertResultDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertUserRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.CreateExecutiveRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.ExecutiveDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UpdateUserStatusRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UserStatusResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.AdminStatusService;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.BulkUserImportService;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.ExecutiveService;
 import jakarta.validation.Valid;
@@ -24,10 +30,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-public class  AdminUserController {
+public class AdminUserController {
 
     private final ExecutiveService executiveService;
     private final BulkUserImportService bulkUserImportService;
+    private final AdminStatusService adminStatusService;
     private final ResponseUtil responseUtil;
 
     @PostMapping("/register/executive")
@@ -46,5 +53,17 @@ public class  AdminUserController {
 
         BulkInsertResultDTO result = bulkUserImportService.bulkInsertUsers(requests);
         return responseUtil.success(result, "Bulk insert user berhasil.", HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/admin/users/{email}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponseDTO<UserStatusResponseDTO>> updateUserStatus(
+            @PathVariable String email,
+            @Valid @RequestBody UpdateUserStatusRequest request,
+            Authentication authentication) {
+
+        String adminEmail = authentication.getName();
+        UserStatusResponseDTO result = adminStatusService.updateUserStatus(email, request, adminEmail);
+        return responseUtil.success(result, "Status user berhasil diubah.", HttpStatus.OK);
     }
 }

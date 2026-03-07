@@ -4,6 +4,41 @@ Spesifikasi lengkap dengan request/response examples untuk fitur registrasi Proj
 
 ---
 
+## ⚠️ IMPORTANT CHANGES (Maintainer Revisions Applied)
+
+### UM-10 & UM-11 Implementation Updates:
+
+1. **UM-10 (Admin Verification) - REFACTORED:**
+   - ✅ Removed `VerifyOwnerRequest` DTO - now accepts direct email parameter
+   - ✅ Service signature changed: `verifyProjectOwner(String projectOwnerEmail, String adminEmail)`
+   - ✅ Controller now passes email directly from path variable
+   - ✅ **Fields moved from User to ProjectOwnerProfile:** `isVerified`, `verifiedBy`, `verifiedAt`
+   - ✅ Created `ProjectOwnerRepository` for querying PO-specific data
+   - ✅ VerificationMapper updated to map User + ProjectOwnerProfile → VerificationResponseDTO
+   - ✅ Email template extracted to `resources/templates/email/verification-notification.html`
+
+2. **UM-11 (User Status):**
+   - ✅ Changed from snake_case `is_active` to camelCase `isActive`
+   - ✅ Removed `@JsonProperty` annotation - use camelCase only
+   - ✅ Request body: `{ "isActive": false }` (not `is_active`)
+
+3. **Email Templates:**
+   - ✅ Email template HTML moved to `resources/templates/email/verification-notification.html`
+   - ✅ Uses placeholder `{{userName}}` for dynamic content
+
+4. **Database Schema:**
+   - ✅ PO-specific fields migrated to `project_owner_profiles` table:
+     - `is_verified` (boolean, default false)
+     - `verified_by` (varchar 255, nullable)
+     - `verified_at` (datetime, nullable)
+   - ✅ User table simplified: removed `verified`, `verified_by`, `verified_at` fields
+
+5. **Repository Pattern:**
+   - ✅ New `ProjectOwnerRepository` for PO-specific queries
+   - ✅ `findByUserEmail(String email)` method for finding PO by user email
+
+---
+
 ## 1. REGISTER PROJECT OWNER
 
 ### Endpoint
@@ -1052,6 +1087,22 @@ public ResponseEntity<BaseResponseDTO<UserDTO>> registerInvestor(
 
 ---
 
+## 10. UPDATE USER CONTACT VERIFICATION STATUS (ADMIN) - UM-10
+
+Feature untuk admin memverifikasi akun Project Owner yang sudah terdaftar dan melakukan email verification. Hanya Project Owner dengan `emailVerified = true` dan `isVerified = false` yang akan ditampilkan di halaman verifikasi admin.
+
+### Difference with Email Verification (UM-4/5)
+
+| Aspek | Email Verification (UM-4/5) | Contact Verification (UM-10) |
+|-------|---------------------------|------------------------------|
+| **Siapa verify?** | User sendiri (click email link) | Admin |
+| **Kapan?** | Saat registrasi | Setelah email verified |
+| **Field** | `emailVerified` | `isVerified` |
+| **Tujuan** | Validasi email valid | Validasi identitas PO valid |
+| **Hasil** | User bisa login | User bisa submit proyek |
+
+---
+
 ## 10. API Integration Quick Start
 
 ### Step 1: Get Registration Options
@@ -1109,10 +1160,354 @@ curl -X POST http://localhost:8080/api/auth/register/investor \
 
 ---
 
+## 10. UPDATE USER CONTACT VERIFICATION STATUS (ADMIN) - UM-10
+
+### Overview
+Admin endpoint untuk memverifikasi akun Project Owner yang sudah terdaftar dan email-verified. Setelah admin verifikasi, PO baru bisa submit proyek ke platform.
+
+**Permission Required:** `ADMIN` role only
+
+**Endpoint:** `PATCH /api/admin/users/{email}/verify`
+
+### Request
+
+**Method:** `PATCH`
+
+**URL:** `http://localhost:8080/api/admin/users/budi.santoso@example.com/verify`
+
+**Headers:**
+```
+Authorization: Bearer <JWT_ADMIN_TOKEN>
+Content-Type: application/json
+```
+
+**Note:** Email dikirim sebagai path parameter, bukan request body.
+
+### Success Response (200 OK)
+
+```json
+{
+  "status": 200,
+  "message": "Project Owner berhasil diverifikasi.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "name": "Budi Santoso",
+    "organization": "PT Infrastruktur Indonesia",
+    "isVerified": true,
+    "verifiedBy": "admin@ipfo.go.id",
+    "verifiedAt": "2026-03-07T10:35:00.000+0000",
+    "roleName": "PROJECT_OWNER"
+  }
+}
+```
+
+### Error Responses
+
+#### 404 Not Found - User tidak ditemukan
+```json
+{
+  "status": 404,
+  "message": "Pengguna dengan email budi.unknown@example.com tidak ditemukan.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": null
+}
+```
+
+#### 400 Bad Request - Already Verified
+```json
+{
+  "status": 400,
+  "message": "Pengguna ini sudah terverifikasi sebelumnya.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": null
+}
+```
+
+#### 403 Forbidden - Not Admin
+```json
+{
+  "status": 403,
+  "message": "Akses ditolak.",
+  "timestamp": "2026-03-07T10:35:00.000+0000",
+  "data": null
+}
+```
+
+### Testing di Postman
+
+**Setup:**
+
+1. Set method ke `PATCH`
+2. URL: `http://localhost:8080/api/admin/users/budi.santoso@example.com/verify`
+3. Go to **Headers** tab:
+   - Key: `Content-Type`, Value: `application/json`
+   - Key: `Authorization`, Value: `Bearer <JWT_ADMIN_TOKEN>`
+4. **Body:** Kosong (tidak perlu request body)
+5. Click **Send**
+
+**Expected Response:**
+- Status: `200 OK`
+- `isVerified` = `true`
+- `verifiedBy` = admin email
+- `verifiedAt` = current timestamp
+- Email terkirim ke PO: "Akun Anda telah diverifikasi. Anda sekarang dapat mengajukan proyek."
+
+### Implementation Details
+
+**User Model Fields:**
+```java
+@Column(nullable = false)
+private boolean isVerified = false;          // Contact verification status (admin)
+
+@Column(length = 255)
+private String verifiedBy;                   // Email of verifying admin
+
+private LocalDateTime verifiedAt;            // When verified
+```
+
+**Business Logic:**
+1. Admin calls `PATCH /api/admin/users/{email}/verify` dengan email PO di path parameter
+2. Sistem check:
+   - User dengan email tersebut ada? → 404 if not
+   - User sudah verified? → 400 if yes
+3. Set `isVerified = true`, `verifiedBy = admin_email`, `verifiedAt = now()`
+4. Save user ke database
+5. Send email to PO: "Akun Anda telah diverifikasi..."
+6. Return 200 dengan updated user data
+
+### Email Content
+
+**Subject:** Akun Anda Telah Diverifikasi - IPFO SIFPI
+
+**Body:**
+```
+Halo [USER_NAME],
+
+Kami dengan senang hati memberitahu bahwa akun Anda telah diverifikasi oleh administrator IPFO SIFPI.
+
+Anda sekarang dapat mengajukan proyek ke platform.
+
+Terima kasih telah bergabung dengan kami!
+
+Salam,
+Tim IPFO SIFPI
+```
+
+### Integration Notes
+
+- Endpoint ini akan di-call dari halaman "Manajemen Pengguna" (fitur teman Anda) 
+- Di halaman tersebut, admin akan: lihat list PO → filter/cari → klik "Verifikasi Akun" → dialog confirm → call endpoint ini
+- Response: toast notification "Berhasil diverifikasi" + badge status PO berubah dari "Pending Verification" → "Terverifikasi"
+
+---
+
+## 11. DELETE USER (SOFT DELETE) - DEACTIVATE ACCOUNT
+
+### Overview
+
+Fitur untuk admin menonaktifkan akun pengguna (soft delete). Ketika akun di-deactivate, pengguna tidak bisa login. Admin dapat mengaktifkan kembali kapan saja. Fitur ini berlaku untuk **semua role pengguna** (Project Owner, Investor, Admin, Executive).
+
+### Endpoint
+
+```
+PATCH /api/admin/users/{email}/status
+```
+
+**Method:** PATCH  
+**Authentication:** Bearer Token (JWT)  
+**Authorization:** ADMIN role only  
+
+### Request
+
+**URL Parameter:**
+```
+{email} = email pengguna (e.g., budi.santoso@example.com)
+```
+
+**Request Body:**
+```json
+{
+  "isActive": false
+}
+```
+
+**Request Field Specification:**
+
+| Field | Tipe Data | Required | Valid Values | Deskripsi |
+|-------|-----------|----------|--------------|-----------|
+| `isActive` | Boolean | ✅ Yes | `true` atau `false` | Status aktif user. false = deactivate, true = activate |
+
+### Success Response (200 OK)
+
+```json
+{
+  "status": 200,
+  "message": "Status pengguna berhasil diperbarui.",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "name": "Budi Santoso",
+    "organization": "PT. Maju Jaya",
+    "isActive": false,
+    "changedBy": "admin@ipfo.go.id",
+    "changedAt": "2026-03-07T14:30:00",
+    "action": "DEACTIVATED",
+    "roleName": "PROJECT_OWNER"
+  }
+}
+```
+
+**Response Field Specification:**
+
+| Field | Tipe Data | Deskripsi |
+|-------|-----------|-----------|
+| `id` | UUID | User ID |
+| `email` | String | Email pengguna |
+| `name` | String | Nama lengkap pengguna |
+| `organization` | String | Organisasi pengguna |
+| `isActive` | Boolean | Status aktif saat ini (true = active, false = deactivate) |
+| `changedBy` | String | Email admin yang melakukan perubahan |
+| `changedAt` | ISO 8601 DateTime | Timestamp perubahan status |
+| `action` | String | Aksi yang dilakukan: `DEACTIVATED` atau `ACTIVATED` |
+| `roleName` | String | Role pengguna (PROJECT_OWNER, INVESTOR, ADMIN, EXECUTIVE) |
+
+### Error Response (404 Not Found)
+
+```json
+{
+  "status": 404,
+  "message": "User dengan email budi.santoso@example.com tidak ditemukan",
+  "data": null
+}
+```
+
+### Error Response (403 Forbidden - Non-Admin)
+
+```json
+{
+  "status": 403,
+  "message": "Akses ditolak. Hanya admin yang dapat mengubah status pengguna.",
+  "data": null
+}
+```
+
+### Business Logic
+
+1. **Validasi Admin:** Cek user yang melakukan request adalah ADMIN role → jika tidak, return 403 Forbidden
+2. **Cari User:** Query user by email (case-insensitive) → jika tidak ketemu, return 404 Not Found
+3. **Update Status:** Set field `active` = `isActive` (dari request)
+4. **Audit Trail:** Set field `changedBy` = admin email (dari JWT), `changedAt` = now(), `action` = "DEACTIVATED" atau "ACTIVATED"
+5. **Save & Return:** Save ke database, return UserStatusResponseDTO dengan 200 OK
+
+### Data Model
+
+**User Entity Fields (UM-11):**
+```java
+@Column(nullable = false)
+private boolean active = true;  // Status aktif user
+
+@Column(length = 255)
+private String changedBy;  // Email admin yang melakukan perubahan status
+
+private LocalDateTime changedAt;  // Timestamp perubahan status
+
+@Column(length = 50)
+private String action;  // "DEACTIVATED" atau "ACTIVATED"
+```
+
+### Use Cases
+
+#### Use Case 1: Deactivate User (Admin menonaktifkan akun)
+
+**Skenario:**
+1. Admin membuka halaman user management
+2. Admin menemukan user yang bermasalah (e.g., Budi Santoso)
+3. Admin klik tombol "Nonaktifkan Akun"
+4. Dialog confirm: "Akun ini akan dinonaktifkan. User tidak dapat login."
+5. Admin klik confirm
+6. Sistem call: `PATCH /api/admin/users/budi.santoso@example.com/status` dengan `isActive: false`
+7. Response success → Toast: "Akun berhasil dinonaktifkan"
+8. Halaman user management: status Budi berubah dari "Aktif" → "Tidak Aktif" (grayed out / disabled badge)
+
+**Database State:**
+```
+UPDATE users SET active = false, changed_by = 'admin@ipfo.go.id', changed_at = '2026-03-07 14:30:00', action = 'DEACTIVATED' WHERE email = 'budi.santoso@example.com'
+```
+
+#### Use Case 2: Reactivate User (Admin mengaktifkan kembali akun)
+
+**Skenario:**
+1. Admin membuka halaman user management
+2. Admin menemukan user yang sudah di-deactivate (e.g., Budi Santoso)
+3. Admin klik tombol "Aktifkan Akun"
+4. Dialog confirm: "Akun ini akan diaktifkan kembali. User dapat login."
+5. Admin klik confirm
+6. Sistem call: `PATCH /api/admin/users/budi.santoso@example.com/status` dengan `isActive: true`
+7. Response success → Toast: "Akun berhasil diaktifkan"
+8. Halaman user management: status Budi berubah dari "Tidak Aktif" → "Aktif"
+
+**Database State:**
+```
+UPDATE users SET active = true, changed_by = 'admin@ipfo.go.id', changed_at = '2026-03-07 15:00:00', action = 'ACTIVATED' WHERE email = 'budi.santoso@example.com'
+```
+
+### Impact on Login & Application
+
+**Deactivated User:**
+- ❌ Tidak dapat login (authentication fails)
+- ❌ Session invalid (jika sedang login, session langsung invalid)
+- ❌ Tidak dapat akses API endpoints (semua request return 401 Unauthorized)
+
+**Reactivated User:**
+- ✅ Dapat login kembali
+- ✅ Dapat mengakses semua features sesuai role
+- ✅ Data terdahulu tetap preserved (tidak ada hard delete)
+
+### Postman Testing Guide
+
+**Request:**
+```
+PATCH http://localhost:8080/api/admin/users/budi.santoso@example.com/status
+
+Headers:
+Authorization: Bearer {ADMIN_JWT_TOKEN}
+Content-Type: application/json
+
+Body (raw JSON):
+{
+  "isActive": false
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "Status pengguna berhasil diperbarui.",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "budi.santoso@example.com",
+    "name": "Budi Santoso",
+    "organization": "PT. Maju Jaya",
+    "isActive": false,
+    "changedBy": "admin@ipfo.go.id",
+    "changedAt": "2026-03-07T14:30:00",
+    "action": "DEACTIVATED",
+    "roleName": "PROJECT_OWNER"
+  }
+}
+```
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 5.0 | 2026-03-07 | Added Section 11: DELETE USER (SOFT DELETE) - DEACTIVATE ACCOUNT (UM-11) - Admin endpoint `PATCH /api/admin/users/{email}/status` for all user roles with isActive toggle, audit trail (changedBy, changedAt, action) |
+| 4.0 | 2026-03-07 | Added Section 10: UPDATE USER CONTACT VERIFICATION STATUS (UM-10) - Admin verification endpoint `PATCH /api/admin/users/{email}/verify` for Project Owners with isVerified field, verifiedBy audit trail, email notifications |
 | 3.0 | 2026-03-05 | Added Section 3: EMAIL VERIFICATION FLOW (25-min expiry, token expired = re-register, success modal on /login) |
 | 2.2 | 2026-03-05 | Final cleanup: User fields optimized (emailVerified + isActive only), event-driven email implemented, enum fields relocated to common/enums |
 | 2.1 | 2026-03-05 | Added 7 optional fields to InvestorProfile (preferredInvestmentInstrument, engagementModel, stagePreference, riskAppetite, esgStandards, localPresence, aumSize) for Investor Catalogue Template |

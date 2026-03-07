@@ -1,7 +1,9 @@
 package id.go.kemenkoinfra.ipfo.sifpi.auth.model;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -34,5 +36,13 @@ public class ProjectOwnerProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    // Add project-owner-specific attributes here
+    // Contact verification fields (UM-10)
+    @Column(nullable = false)
+    private boolean isVerified = false;  // Admin verification status
+
+    @Column(length = 255)
+    private String verifiedBy;  // Email of admin who verified
+
+    private LocalDateTime verifiedAt;  // When verified
 }
+

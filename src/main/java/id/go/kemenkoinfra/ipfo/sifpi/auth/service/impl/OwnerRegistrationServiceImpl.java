@@ -4,8 +4,10 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.OwnerDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateOwnerRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.event.OwnerRegisteredEvent;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RegistrationMapper;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.ProjectOwnerProfile;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ProjectOwnerRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.OwnerRegistrationService;
@@ -21,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -32,6 +33,7 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
     private static final int EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 25;
 
     private final UserRepository userRepository;
+    private final ProjectOwnerRepository projectOwnerRepository;
     private final UserTokenService userTokenService;
     private final RoleRepository roleRepository;
     private final RegistrationMapper registrationMapper;
@@ -64,6 +66,13 @@ public class OwnerRegistrationServiceImpl implements OwnerRegistrationService {
         // Save user to database (emailVerified = false initially)
         User savedUser = userRepository.saveAndFlush(user);
         log.info("Project owner registered successfully with id: {}, awaiting email verification", savedUser.getId());
+
+        // Create ProjectOwnerProfile for this user
+        ProjectOwnerProfile ownerProfile = new ProjectOwnerProfile();
+        ownerProfile.setUser(savedUser);
+        ownerProfile.setVerified(false);  // Admin verification pending
+        projectOwnerRepository.saveAndFlush(ownerProfile);
+        log.info("ProjectOwnerProfile created for user: {}", savedUser.getId());
 
         // Generate and save email verification token
         String verificationToken = userTokenService.createToken(
