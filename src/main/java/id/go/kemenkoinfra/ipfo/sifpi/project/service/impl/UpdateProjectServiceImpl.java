@@ -1,5 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.service.impl;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ForbiddenException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
@@ -13,6 +15,9 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.repository.ProjectRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.UpdateProjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,16 +34,20 @@ public class UpdateProjectServiceImpl implements UpdateProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMapper projectMapper;
     private final StorageService storageService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public ProjectResponseDTO updateProject(
             Long projectId,
-            UUID ownerId,
             EditProjectRequest request,
             MultipartFile mapFile,
             MultipartFile projectStructureFile,
             MultipartFile projectFile) {
+
+        // Resolve current user from SecurityContext
+        User currentUser = resolveCurrentUser();
+        UUID ownerId = currentUser.getId();
 
         log.info("Updating project ID: {} by owner: {}", projectId, ownerId);
 
@@ -133,5 +142,25 @@ public class UpdateProjectServiceImpl implements UpdateProjectService {
             project.getTimelines().addAll(newTimelines);
             log.info("Added {} timelines to project", newTimelines.size());
         }
+    }
+
+    /**
+     * Resolve current user from SecurityContext
+     */
+    private User resolveCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Akses ditolak.");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AccessDeniedException("Akses ditolak."));
+
+        if (!user.isEmailVerified()) {
+            throw new AccessDeniedException("Akses ditolak.");
+        }
+
+        return user;
     }
 }

@@ -84,7 +84,6 @@ public class ProjectController {
     @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponseDTO<ProjectResponseDTO>> updateProject(
             @PathVariable Long id,
-            @AuthenticationPrincipal UUID userId,
             @Valid @RequestPart("data") EditProjectRequest request,
             @RequestPart(value = "mapFile", required = false) MultipartFile mapFile,
             @RequestPart(value = "projectStructureFile", required = false) MultipartFile projectStructureFile,
@@ -92,7 +91,6 @@ public class ProjectController {
 
         ProjectResponseDTO result = updateProjectService.updateProject(
                 id,
-                userId,
                 request,
                 mapFile,
                 projectStructureFile,
