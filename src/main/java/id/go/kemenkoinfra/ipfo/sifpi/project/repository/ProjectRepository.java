@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
@@ -38,6 +39,32 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
             @Param("status") ProjectStatus status,
             @Param("sector") Sector sector,
             @Param("ownerId") UUID ownerId,
+            @Param("search") String search,
+            Pageable pageable
+    );
+
+    /**
+     * PM-10: Find published projects for public catalogue
+     * Only returns TERPUBLIKASI projects with optional filters
+     */
+    @Query("SELECT p FROM Project p WHERE " +
+            "p.status = 'TERPUBLIKASI' AND " +
+            "(:sector IS NULL OR p.sector = :sector) AND " +
+            "(:location IS NULL OR :location = '' OR " +
+            "LOWER(p.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND " +
+            "(:cooperationModel IS NULL OR :cooperationModel = '' OR " +
+            "LOWER(p.cooperationModel) LIKE LOWER(CONCAT('%', :cooperationModel, '%'))) AND " +
+            "(:minBudget IS NULL OR p.totalCapex >= :minBudget) AND " +
+            "(:maxBudget IS NULL OR p.totalCapex <= :maxBudget) AND " +
+            "(:search IS NULL OR :search = '' OR " +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Project> findPublishedProjectsForCatalogue(
+            @Param("sector") Sector sector,
+            @Param("location") String location,
+            @Param("cooperationModel") String cooperationModel,
+            @Param("minBudget") BigDecimal minBudget,
+            @Param("maxBudget") BigDecimal maxBudget,
             @Param("search") String search,
             Pageable pageable
     );
