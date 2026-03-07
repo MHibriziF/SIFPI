@@ -4,6 +4,41 @@ Spesifikasi lengkap dengan request/response examples untuk fitur registrasi Proj
 
 ---
 
+## ⚠️ IMPORTANT CHANGES (Maintainer Revisions Applied)
+
+### UM-10 & UM-11 Implementation Updates:
+
+1. **UM-10 (Admin Verification) - REFACTORED:**
+   - ✅ Removed `VerifyOwnerRequest` DTO - now accepts direct email parameter
+   - ✅ Service signature changed: `verifyProjectOwner(String projectOwnerEmail, String adminEmail)`
+   - ✅ Controller now passes email directly from path variable
+   - ✅ **Fields moved from User to ProjectOwnerProfile:** `isVerified`, `verifiedBy`, `verifiedAt`
+   - ✅ Created `ProjectOwnerRepository` for querying PO-specific data
+   - ✅ VerificationMapper updated to map User + ProjectOwnerProfile → VerificationResponseDTO
+   - ✅ Email template extracted to `resources/templates/email/verification-notification.html`
+
+2. **UM-11 (User Status):**
+   - ✅ Changed from snake_case `is_active` to camelCase `isActive`
+   - ✅ Removed `@JsonProperty` annotation - use camelCase only
+   - ✅ Request body: `{ "isActive": false }` (not `is_active`)
+
+3. **Email Templates:**
+   - ✅ Email template HTML moved to `resources/templates/email/verification-notification.html`
+   - ✅ Uses placeholder `{{userName}}` for dynamic content
+
+4. **Database Schema:**
+   - ✅ PO-specific fields migrated to `project_owner_profiles` table:
+     - `is_verified` (boolean, default false)
+     - `verified_by` (varchar 255, nullable)
+     - `verified_at` (datetime, nullable)
+   - ✅ User table simplified: removed `verified`, `verified_by`, `verified_at` fields
+
+5. **Repository Pattern:**
+   - ✅ New `ProjectOwnerRepository` for PO-specific queries
+   - ✅ `findByUserEmail(String email)` method for finding PO by user email
+
+---
+
 ## 1. REGISTER PROJECT OWNER
 
 ### Endpoint

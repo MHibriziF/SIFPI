@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.VerificationResponseDTO;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.VerifyOwnerRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.AdminVerificationService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
@@ -34,11 +33,8 @@ public class AdminVerificationController {
             @PathVariable String email,
             Authentication authentication) {
 
-        VerifyOwnerRequest request = new VerifyOwnerRequest();
-        request.setEmail(email);
-
         String adminEmail = authentication.getName();
-        VerificationResponseDTO result = adminVerificationService.verifyProjectOwner(request, adminEmail);
+        VerificationResponseDTO result = adminVerificationService.verifyProjectOwner(email, adminEmail);
         return responseUtil.success(result, "Project Owner berhasil diverifikasi.", HttpStatus.OK);
     }
 }

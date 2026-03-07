@@ -6,9 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.VerificationResponseDTO;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.VerifyOwnerRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.VerificationMapper;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.ProjectOwnerProfile;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ProjectOwnerRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.AdminVerificationService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
@@ -22,34 +23,42 @@ import lombok.extern.slf4j.Slf4j;
 public class AdminVerificationServiceImpl implements AdminVerificationService {
 
     private final UserRepository userRepository;
+    private final ProjectOwnerRepository projectOwnerRepository;
     private final VerificationMapper verificationMapper;
     private final EmailServiceImpl emailService;
 
     @Override
     @Transactional
-    public VerificationResponseDTO verifyProjectOwner(VerifyOwnerRequest request, String adminEmail) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new NotFoundException("Pengguna dengan email " + request.getEmail() + " tidak ditemukan."));
+    public VerificationResponseDTO verifyProjectOwner(String projectOwnerEmail, String adminEmail) {
+        // Get user by email
+        User user = userRepository.findByEmail(projectOwnerEmail)
+                .orElseThrow(() -> new NotFoundException("Pengguna dengan email " + projectOwnerEmail + " tidak ditemukan."));
 
-        if (user.isVerified()) {
+        // Get ProjectOwnerProfile
+        ProjectOwnerProfile poProfile = projectOwnerRepository.findByUserEmail(projectOwnerEmail)
+                .orElseThrow(() -> new NotFoundException("Project Owner profile tidak ditemukan untuk email " + projectOwnerEmail));
+
+        // Check if already verified
+        if (poProfile.isVerified()) {
             throw new IllegalArgumentException("Pengguna ini sudah terverifikasi sebelumnya.");
         }
 
-        user.setVerified(true);
-        user.setVerifiedBy(adminEmail);
-        user.setVerifiedAt(LocalDateTime.now());
+        // Update verification status
+        poProfile.setVerified(true);
+        poProfile.setVerifiedBy(adminEmail);
+        poProfile.setVerifiedAt(LocalDateTime.now());
 
-        User verifiedUser = userRepository.save(user);
-        log.info("Project Owner {} verified by admin {}", request.getEmail(), adminEmail);
+        ProjectOwnerProfile verifiedProfile = projectOwnerRepository.save(poProfile);
+        log.info("Project Owner {} verified by admin {}", projectOwnerEmail, adminEmail);
 
         // Send notification email
         try {
-            sendVerificationNotificationEmail(verifiedUser);
+            sendVerificationNotificationEmail(user);
         } catch (Exception e) {
-            log.error("Failed to send verification notification email to {}", request.getEmail(), e);
+            log.error("Failed to send verification notification email to {}", projectOwnerEmail, e);
         }
 
-        return verificationMapper.toVerificationDTO(verifiedUser);
+        return verificationMapper.toVerificationDTO(user, verifiedProfile);
     }
 
     private void sendVerificationNotificationEmail(User user) {

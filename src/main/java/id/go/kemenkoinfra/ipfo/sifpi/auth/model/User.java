@@ -70,16 +70,7 @@ public class User {
     private boolean emailVerified = false;
 
     @Column(nullable = false)
-    private boolean verified = false;
-
-    @Column(nullable = false)
     private boolean active = true;
-
-    // Contact verification audit trail (for admin verification - UM-10)
-    @Column(length = 255)
-    private String verifiedBy;
-
-    private LocalDateTime verifiedAt;
 
     // Status change audit trail (for deactivation - UM-11)
     @Column(length = 255)
