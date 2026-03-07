@@ -1052,3 +1052,323 @@ Email dikirim via **SendGrid API** dari `noreply@mhibrizif.site`.## 🧪 Testing
 | Create dengan nama kosong | 400 Bad Request |
 | Create tanpa JWT token | 401 Unauthorized |
 | Create dengan role non-admin | 403 Forbidden |
+
+
+# PM-3: Read All Project (Project Owner)
+
+## Overview
+Endpoint untuk Project Owner melihat seluruh proyek yang telah mereka ajukan dan memantau status verifikasi.
+
+## Endpoint
+```
+GET /api/projects/my-projects
+```
+
+## Authentication
+- Required: Yes
+- Role: PROJECT_OWNER
+- Permission: PROJECT:READ
+
+## Request Parameters
+
+### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| status | ProjectStatus | No | - | Filter berdasarkan status proyek |
+| page | int | No | 0 | Nomor halaman (0-indexed) |
+| size | int | No | 10 | Jumlah item per halaman (max 100) |
+| sortBy | string | No | createdAt | Field untuk sorting (createdAt, name, etc.) |
+| sortDirection | string | No | desc | Arah sorting (asc/desc) |
+
+### Project Status Options
+- `DRAFT` - Proyek masih dalam draft
+- `DIAJUKAN` - Proyek sudah diajukan
+- `IN_REVIEW` - Proyek sedang dalam review
+- `PERBAIKAN_DATA` - Proyek perlu perbaikan data
+- `TERVERIFIKASI` - Proyek sudah terverifikasi
+- `TERPUBLIKASI` - Proyek sudah dipublikasikan
+
+## Response
+
+### Success Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Daftar proyek berhasil diambil.",
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "name": "Pembangunan Jalan Tol",
+        "sector": "TRANSPORTATION",
+        "status": "DIAJUKAN",
+        "location": "Jakarta - Bandung",
+        "description": "Proyek pembangunan jalan tol sepanjang 150 km",
+        "isSubmitted": true,
+        "createdAt": "2026-03-01T10:00:00",
+        "editedAt": "2026-03-05T14:30:00"
+      },
+      {
+        "id": 2,
+        "name": "PLTS Tenaga Surya",
+        "sector": "ENERGY",
+        "status": "DRAFT",
+        "location": "Bali",
+        "description": "Pembangkit listrik tenaga surya 50 MW",
+        "isSubmitted": false,
+        "createdAt": "2026-02-28T09:00:00",
+        "editedAt": "2026-03-04T16:20:00"
+      }
+    ],
+    "page": 0,
+    "size": 10,
+    "totalElements": 15,
+    "totalPages": 2,
+    "first": true,
+    "last": false
+  }
+}
+```
+
+## Example Usage
+
+### Get All My Projects (Default - Newest First)
+```bash
+GET /api/projects/my-projects
+```
+
+### Get My Projects - Page 2
+```bash
+GET /api/projects/my-projects?page=1&size=10
+```
+
+### Filter by Status - Only Submitted Projects
+```bash
+GET /api/projects/my-projects?status=DIAJUKAN
+```
+
+### Filter by Status - Only Draft Projects
+```bash
+GET /api/projects/my-projects?status=DRAFT
+```
+
+### Sort by Name (Ascending)
+```bash
+GET /api/projects/my-projects?sortBy=name&sortDirection=asc
+```
+
+### Sort by Creation Date (Oldest First)
+```bash
+GET /api/projects/my-projects?sortBy=createdAt&sortDirection=asc
+```
+
+### Combined Filters
+```bash
+GET /api/projects/my-projects?status=TERVERIFIKASI&page=0&size=20&sortBy=editedAt&sortDirection=desc
+```
+
+## Implementation Details
+
+### Service Layer
+- **Service**: `ReadProjectService`
+- **Implementation**: `ReadProjectServiceImpl`
+- **Method**: `getMyProjects(UUID ownerId, ProjectStatus status, int page, int size, String sortBy, String sortDirection)`
+
+### Key Features
+1. **Automatic User ID Extraction**: User ID diambil dari token JWT (@AuthenticationPrincipal)
+2. **Pagination**: Default 10 items per halaman, maksimal 100
+3. **Filtering**: Filter berdasarkan status proyek (optional)
+4. **Sorting**: Support sorting berdasarkan berbagai field (default: createdAt desc)
+5. **Security**: Hanya menampilkan proyek milik user yang sedang login
+
+### Database Query
+- Menggunakan `ProjectRepository.findByOwnerId()` untuk semua proyek
+- Menggunakan `ProjectRepository.findByOwnerIdAndStatus()` untuk filter status
+- Support Spring Data JPA pagination dan sorting
+
+## Error Handling
+
+### Unauthorized (401)
+User tidak authenticated atau token invalid
+```json
+{
+  "success": false,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+### Forbidden (403)
+User tidak memiliki permission PROJECT:READ
+```json
+{
+  "success": false,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+## Testing
+
+### Manual Testing dengan cURL
+```bash
+# Login sebagai project owner
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "projectowner@sifpi.go.id",
+    "password": "projectowner123"
+  }' \
+  -c cookies.txt
+
+# Get my projects
+curl -X GET http://localhost:8080/api/projects/my-projects \
+  -b cookies.txt
+
+# Get my projects with filters
+curl -X GET "http://localhost:8080/api/projects/my-projects?status=DIAJUKAN&page=0&size=10" \
+  -b cookies.txt
+```
+
+## Notes
+- Endpoint ini hanya bisa diakses oleh role PROJECT_OWNER
+- User hanya bisa melihat proyek yang mereka buat sendiri (berdasarkan ownerId)
+- Response menggunakan simplified DTO (`ProjectListItemDTO`) untuk performa lebih baik
+- Support pagination untuk menghindari response yang terlalu besar
+
+
+
+---
+
+
+# PM-5: Update Project (Project Owner)
+
+## Overview
+Endpoint untuk Project Owner mengupdate data proyek. Hanya proyek dengan status **DRAFT** yang dapat diedit oleh pemilik proyek.
+
+## Endpoint
+```
+PATCH /api/projects/{id}
+```
+
+## Authentication
+- Required: Yes
+- Role: PROJECT_OWNER  
+- Permission: PROJECT:UPDATE
+
+## Testing dengan cURL
+
+### 1. Login
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "projectowner@sifpi.go.id",
+    "password": "projectowner123"
+  }' \
+  -c cookies.txt -v
+```
+
+### 2. Buat Project (untuk test)
+```bash
+curl -X POST http://localhost:8080/api/projects \
+  -H "Content-Type: multipart/form-data" \
+  -b cookies.txt \
+  -F 'data={
+    "name": "Test Project Update",
+    "sector": "Transportation",
+    "location": "Jakarta",
+    "description": "Test project",
+    "ownerInstitution": "Test Org",
+    "contactPersonName": "Test",
+    "contactPersonPhone": "08123456789",
+    "contactPersonEmail": "test@example.com",
+    "valueProposition": "Test",
+    "totalCapex": 1000000000,
+    "totalOpex": 100000000,
+    "timelines": [{"year": 2026, "description": "Planning"}]
+  };type=application/json'
+```
+
+Catat `id` dari response (misal id = 1)
+
+### 3. Update Project - Partial Update
+```bash
+curl -X PATCH http://localhost:8080/api/projects/1 \
+  -H "Content-Type: multipart/form-data" \
+  -b cookies.txt \
+  -F 'data={
+    "name": "Updated Project Name",
+    "description": "Updated description",
+    "totalCapex": 2000000000,
+    "timelines": [
+      {"year": 2026, "description": "Planning Phase"},
+      {"year": 2027, "description": "Construction"},
+      {"year": 2028, "description": "Operation"}
+    ]
+  };type=application/json' \
+  -v
+```
+
+**Expected:** 200 OK, field `name`, `description`, `totalCapex` berubah, timeline ada 3
+
+### 4. Update dengan File Upload
+```bash
+curl -X PATCH http://localhost:8080/api/projects/1 \
+  -H "Content-Type: multipart/form-data" \
+  -b cookies.txt \
+  -F 'data={"name": "Project with Files"};type=application/json' \
+  -F 'mapFile=@/path/to/map.jpg' \
+  -F 'projectStructureFile=@/path/to/structure.jpg' \
+  -F 'projectFile=@/path/to/document.pdf' \
+  -v
+```
+
+### 5. Test Validasi - Non-Owner (403)
+```bash
+# Login sebagai investor
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "investor@sifpi.go.id", "password": "investor123"}' \
+  -c cookies2.txt
+
+# Coba update project orang lain
+curl -X PATCH http://localhost:8080/api/projects/1 \
+  -b cookies2.txt \
+  -F 'data={"name": "Hacked"};type=application/json' \
+  -v
+```
+
+**Expected:** 403 Forbidden - "Anda tidak memiliki akses untuk mengupdate proyek ini"
+
+### 6. Test Validasi - Project Not Found (404)
+```bash
+curl -X PATCH http://localhost:8080/api/projects/99999 \
+  -b cookies.txt \
+  -F 'data={"name": "Test"};type=application/json' \
+  -v
+```
+
+**Expected:** 404 Not Found
+
+## Business Rules
+1. ✅ Project harus exist (404 if not found)
+2. ✅ Hanya owner yang bisa update (403 if not owner)  
+3. ✅ Hanya DRAFT yang bisa diedit (403 if not DRAFT)
+4. ✅ Partial update - semua field optional
+5. ✅ File upload optional - file lama dihapus jika upload baru
+6. ✅ Timeline upsert - clear existing + add new
+
+## Files Created
+- `ForbiddenException.java` - Custom 403 exception
+- `UpdateProjectService.java` - Service interface
+- `UpdateProjectServiceImpl.java` - Service implementation
+
+## Files Modified
+- `GlobalExceptionHandler.java` - Added ForbiddenException handler
+- `ProjectController.java` - Added PATCH endpoint
+
+## Dokumentasi Lengkap
+Lihat: [`PM-5-update-project.md`](./PM-5-update-project.md)
+
