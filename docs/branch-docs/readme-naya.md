@@ -1236,3 +1236,139 @@ curl -X GET "http://localhost:8080/api/projects/my-projects?status=DIAJUKAN&page
 - User hanya bisa melihat proyek yang mereka buat sendiri (berdasarkan ownerId)
 - Response menggunakan simplified DTO (`ProjectListItemDTO`) untuk performa lebih baik
 - Support pagination untuk menghindari response yang terlalu besar
+
+
+
+---
+
+
+# PM-5: Update Project (Project Owner)
+
+## Overview
+Endpoint untuk Project Owner mengupdate data proyek. Hanya proyek dengan status **DRAFT** yang dapat diedit oleh pemilik proyek.
+
+## Endpoint
+```
+PATCH /api/projects/{id}
+```
+
+## Authentication
+- Required: Yes
+- Role: PROJECT_OWNER  
+- Permission: PROJECT:UPDATE
+
+## Testing dengan cURL
+
+### 1. Login
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "projectowner@sifpi.go.id",
+    "password": "projectowner123"
+  }' \
+  -c cookies.txt -v
+```
+
+### 2. Buat Project (untuk test)
+```bash
+curl -X POST http://localhost:8080/api/projects \
+  -H "Content-Type: multipart/form-data" \
+  -b cookies.txt \
+  -F 'data={
+    "name": "Test Project Update",
+    "sector": "Transportation",
+    "location": "Jakarta",
+    "description": "Test project",
+    "ownerInstitution": "Test Org",
+    "contactPersonName": "Test",
+    "contactPersonPhone": "08123456789",
+    "contactPersonEmail": "test@example.com",
+    "valueProposition": "Test",
+    "totalCapex": 1000000000,
+    "totalOpex": 100000000,
+    "timelines": [{"year": 2026, "description": "Planning"}]
+  };type=application/json'
+```
+
+Catat `id` dari response (misal id = 1)
+
+### 3. Update Project - Partial Update
+```bash
+curl -X PATCH http://localhost:8080/api/projects/1 \
+  -H "Content-Type: multipart/form-data" \
+  -b cookies.txt \
+  -F 'data={
+    "name": "Updated Project Name",
+    "description": "Updated description",
+    "totalCapex": 2000000000,
+    "timelines": [
+      {"year": 2026, "description": "Planning Phase"},
+      {"year": 2027, "description": "Construction"},
+      {"year": 2028, "description": "Operation"}
+    ]
+  };type=application/json' \
+  -v
+```
+
+**Expected:** 200 OK, field `name`, `description`, `totalCapex` berubah, timeline ada 3
+
+### 4. Update dengan File Upload
+```bash
+curl -X PATCH http://localhost:8080/api/projects/1 \
+  -H "Content-Type: multipart/form-data" \
+  -b cookies.txt \
+  -F 'data={"name": "Project with Files"};type=application/json' \
+  -F 'mapFile=@/path/to/map.jpg' \
+  -F 'projectStructureFile=@/path/to/structure.jpg' \
+  -F 'projectFile=@/path/to/document.pdf' \
+  -v
+```
+
+### 5. Test Validasi - Non-Owner (403)
+```bash
+# Login sebagai investor
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "investor@sifpi.go.id", "password": "investor123"}' \
+  -c cookies2.txt
+
+# Coba update project orang lain
+curl -X PATCH http://localhost:8080/api/projects/1 \
+  -b cookies2.txt \
+  -F 'data={"name": "Hacked"};type=application/json' \
+  -v
+```
+
+**Expected:** 403 Forbidden - "Anda tidak memiliki akses untuk mengupdate proyek ini"
+
+### 6. Test Validasi - Project Not Found (404)
+```bash
+curl -X PATCH http://localhost:8080/api/projects/99999 \
+  -b cookies.txt \
+  -F 'data={"name": "Test"};type=application/json' \
+  -v
+```
+
+**Expected:** 404 Not Found
+
+## Business Rules
+1. ✅ Project harus exist (404 if not found)
+2. ✅ Hanya owner yang bisa update (403 if not owner)  
+3. ✅ Hanya DRAFT yang bisa diedit (403 if not DRAFT)
+4. ✅ Partial update - semua field optional
+5. ✅ File upload optional - file lama dihapus jika upload baru
+6. ✅ Timeline upsert - clear existing + add new
+
+## Files Created
+- `ForbiddenException.java` - Custom 403 exception
+- `UpdateProjectService.java` - Service interface
+- `UpdateProjectServiceImpl.java` - Service implementation
+
+## Files Modified
+- `GlobalExceptionHandler.java` - Added ForbiddenException handler
+- `ProjectController.java` - Added PATCH endpoint
+
+## Dokumentasi Lengkap
+Lihat: [`PM-5-update-project.md`](./PM-5-update-project.md)
+
