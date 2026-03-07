@@ -1,5 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.service.impl;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
@@ -13,6 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,16 +32,19 @@ public class ReadProjectServiceImpl implements ReadProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMapper projectMapper;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
     public PagedResponseDTO<ProjectListItemDTO> getMyProjects(
-            UUID ownerId,
             ProjectStatus status,
             int page,
             int size,
             String sortBy,
             String sortDirection) {
+
+        // Get current authenticated user
+        UUID ownerId = resolveCurrentUserId();
 
         log.info("Fetching projects for owner: {}, status: {}, page: {}, size: {}, sortBy: {}, sortDirection: {}",
                 ownerId, status, page, size, sortBy, sortDirection);
@@ -83,5 +91,21 @@ public class ReadProjectServiceImpl implements ReadProjectService {
                 .first(projectPage.isFirst())
                 .last(projectPage.isLast())
                 .build();
+    }
+
+    /**
+     * Resolve current authenticated user's ID from SecurityContext
+     */
+    private UUID resolveCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Akses ditolak.");
+        }
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AccessDeniedException("Akses ditolak."));
+
+        return user.getId();
     }
 }
