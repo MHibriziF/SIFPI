@@ -58,7 +58,6 @@ public class ProjectController {
     @PreAuthorize("hasAuthority('PROJECT:READ')")
     @GetMapping("/my-projects")
     public ResponseEntity<BaseResponseDTO<PagedResponseDTO<ProjectListItemDTO>>> getMyProjects(
-            @AuthenticationPrincipal UUID userId,
             @RequestParam(required = false) ProjectStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -66,7 +65,6 @@ public class ProjectController {
             @RequestParam(defaultValue = "desc") String sortDirection) {
 
         PagedResponseDTO<ProjectListItemDTO> result = readProjectService.getMyProjects(
-                userId,
                 status,
                 page,
                 size,
