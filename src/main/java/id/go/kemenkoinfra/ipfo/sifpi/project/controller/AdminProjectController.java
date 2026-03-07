@@ -8,6 +8,10 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.AdminProjectListItemDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.AdminProjectService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,10 +38,7 @@ public class AdminProjectController {
      * @param sector Filter by sector (optional)
      * @param ownerId Filter by owner ID (optional)
      * @param search Search term for project name or organization (optional)
-     * @param page Page number (0-indexed, default 0)
-     * @param size Page size (default 20, max 100)
-     * @param sortBy Sort field: createdAt, updatedAt, name, totalCapex (default createdAt)
-     * @param sortDirection Sort direction: asc or desc (default desc)
+     * @param pageable Pagination parameters (page, size, sort)
      * @return Paginated list of projects with owner information
      */
     @PreAuthorize("hasRole('ADMIN')")
@@ -47,22 +48,27 @@ public class AdminProjectController {
             @RequestParam(required = false) Sector sector,
             @RequestParam(required = false) UUID ownerId,
             @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        PagedResponseDTO<AdminProjectListItemDTO> result = adminProjectService.getAllProjects(
+        Page<AdminProjectListItemDTO> result = adminProjectService.getAllProjects(
                 status,
                 sector,
                 ownerId,
                 search,
-                page,
-                size,
-                sortBy,
-                sortDirection
+                pageable
         );
 
-        return responseUtil.success(result, "Daftar proyek berhasil diambil.", HttpStatus.OK);
+        // Convert Page to PagedResponseDTO
+        PagedResponseDTO<AdminProjectListItemDTO> pagedResponse = PagedResponseDTO.<AdminProjectListItemDTO>builder()
+                .content(result.getContent())
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .first(result.isFirst())
+                .last(result.isLast())
+                .build();
+
+        return responseUtil.success(pagedResponse, "Daftar proyek berhasil diambil.", HttpStatus.OK);
     }
 }

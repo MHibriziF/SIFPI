@@ -1,8 +1,9 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.service;
 
-import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.PublicProjectCatalogueDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 
@@ -20,22 +21,16 @@ public interface PublicProjectService {
      * @param minBudget Minimum budget filter (optional)
      * @param maxBudget Maximum budget filter (optional)
      * @param search Search in project name and description (optional)
-     * @param page Page number (0-indexed)
-     * @param size Page size (default 12)
-     * @param sortBy Sort field: createdAt, name, totalCapex
-     * @param sortDirection Sort direction: asc or desc
-     * @return Paginated list of published projects
+     * @param pageable Pagination and sorting parameters
+     * @return Page of published projects
      */
-    PagedResponseDTO<PublicProjectCatalogueDTO> getPublishedProjects(
+    Page<PublicProjectCatalogueDTO> getPublishedProjects(
             Sector sector,
             String location,
             String cooperationModel,
             BigDecimal minBudget,
             BigDecimal maxBudget,
             String search,
-            int page,
-            int size,
-            String sortBy,
-            String sortDirection
+            Pageable pageable
     );
 }

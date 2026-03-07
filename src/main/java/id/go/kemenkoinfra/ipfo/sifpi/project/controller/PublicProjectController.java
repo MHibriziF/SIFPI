@@ -7,6 +7,10 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.PublicProjectCatalogueDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.PublicProjectService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,10 +39,7 @@ public class PublicProjectController {
      * @param minBudget Minimum budget filter (optional)
      * @param maxBudget Maximum budget filter (optional)
      * @param search Search in project name and description (optional)
-     * @param page Page number (0-indexed, default 0)
-     * @param size Page size (default 12)
-     * @param sortBy Sort field: createdAt, name, totalCapex (default createdAt)
-     * @param sortDirection Sort direction: asc or desc (default desc)
+     * @param pageable Pagination parameters (page, size, sort)
      * @return Paginated list of published projects
      */
     @GetMapping
@@ -49,24 +50,29 @@ public class PublicProjectController {
             @RequestParam(required = false) BigDecimal minBudget,
             @RequestParam(required = false) BigDecimal maxBudget,
             @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        PagedResponseDTO<PublicProjectCatalogueDTO> result = publicProjectService.getPublishedProjects(
+        Page<PublicProjectCatalogueDTO> result = publicProjectService.getPublishedProjects(
                 sector,
                 location,
                 cooperationModel,
                 minBudget,
                 maxBudget,
                 search,
-                page,
-                size,
-                sortBy,
-                sortDirection
+                pageable
         );
 
-        return responseUtil.success(result, "Katalog proyek berhasil diambil.", HttpStatus.OK);
+        // Convert Page to PagedResponseDTO
+        PagedResponseDTO<PublicProjectCatalogueDTO> pagedResponse = PagedResponseDTO.<PublicProjectCatalogueDTO>builder()
+                .content(result.getContent())
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .first(result.isFirst())
+                .last(result.isLast())
+                .build();
+
+        return responseUtil.success(pagedResponse, "Katalog proyek berhasil diambil.", HttpStatus.OK);
     }
 }
