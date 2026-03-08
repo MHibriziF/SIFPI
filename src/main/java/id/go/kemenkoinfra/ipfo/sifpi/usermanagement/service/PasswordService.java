@@ -1,5 +1,6 @@
 package id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service;
 
+import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.SetPasswordRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UpdatePasswordRequest;
 
