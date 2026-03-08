@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * Find projects by owner ID and status with pagination
      */
     Page<Project> findByOwnerIdAndStatus(UUID ownerId, ProjectStatus status, Pageable pageable);
+
+    List<Project> findAllByIdIn(List<Long> ids);
 
     /**
      * PM-9: Find all projects with optional filters for admin

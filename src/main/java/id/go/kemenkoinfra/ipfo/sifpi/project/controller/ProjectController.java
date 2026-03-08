@@ -1,8 +1,12 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.controller;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.CatalogueExportFileDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.service.CatalogueExportService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.ReadProjectService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +19,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CatalogueExportRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.EditProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
@@ -31,6 +36,7 @@ public class ProjectController {
 
     private final CreateProjectService createProjectService;
     private final ReadProjectService readProjectService;
+    private final CatalogueExportService catalogueExportService;
     private final UpdateProjectService updateProjectService;
     private final ResponseUtil responseUtil;
 
@@ -73,6 +79,21 @@ public class ProjectController {
         );
 
         return responseUtil.success(result, "Daftar proyek berhasil diambil.", HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/catalogue/export", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<byte[]> exportCatalogue(
+            @Valid @RequestBody CatalogueExportRequest request) {
+
+        CatalogueExportFileDTO result = catalogueExportService.exportCatalogue(request);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(result.getFilename())
+                        .build()
+                        .toString())
+                .body(result.getData());
     }
 
     /**
