@@ -6,6 +6,8 @@ public interface StorageService {
 
     String upload(String folder, MultipartFile file);
 
+    String uploadFromUrl(String folder, String sourceUrl);
+
     FileDownload download(String key);
 
     void delete(String key);
