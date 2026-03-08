@@ -78,7 +78,7 @@ public class AdminProjectController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/bulk")
+    @PostMapping("/batch-upload")
     public ResponseEntity<BaseResponseDTO<BulkInsertProjectResultDTO>> bulkInsertProjects(
             @RequestBody List<BulkInsertProjectRequest> requests) {
 

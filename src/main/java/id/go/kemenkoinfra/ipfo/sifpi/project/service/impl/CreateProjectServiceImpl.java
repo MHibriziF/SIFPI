@@ -33,7 +33,9 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.BulkInsertProjectReques
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.mapper.ProjectMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
+import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectBatch;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectTimeline;
+import id.go.kemenkoinfra.ipfo.sifpi.project.repository.ProjectBatchRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.project.repository.ProjectRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
 import jakarta.mail.internet.AddressException;
@@ -50,6 +52,7 @@ public class CreateProjectServiceImpl implements CreateProjectService {
     private static final int MAX_BULK_ROWS = 500;
 
     private final ProjectRepository projectRepository;
+    private final ProjectBatchRepository projectBatchRepository;
     private final ProjectMapper projectMapper;
     private final StorageService storageService;
     private final UserRepository userRepository;
@@ -90,6 +93,8 @@ public class CreateProjectServiceImpl implements CreateProjectService {
         if (requests.size() > MAX_BULK_ROWS) {
             throw new IllegalArgumentException("Maksimum " + MAX_BULK_ROWS + " baris per upload.");
         }
+
+        User admin = resolveCurrentUser();
 
         Map<Integer, LinkedHashSet<String>> validationErrors = new LinkedHashMap<>();
         Map<String, List<Integer>> ownerEmailRowsMap = new LinkedHashMap<>();
@@ -150,14 +155,37 @@ public class CreateProjectServiceImpl implements CreateProjectService {
             }
         }
 
+        int successCount = projectsToSave.size();
+        int failedCount = validationErrors.size();
+
+        ProjectBatch.BatchStatus batchStatus;
+        if (successCount == 0) {
+            batchStatus = ProjectBatch.BatchStatus.FAILED;
+        } else if (failedCount > 0) {
+            batchStatus = ProjectBatch.BatchStatus.PARTIAL;
+        } else {
+            batchStatus = ProjectBatch.BatchStatus.COMPLETED;
+        }
+
+        ProjectBatch batch = ProjectBatch.builder()
+                .batchName("Upload " + java.time.LocalDate.now())
+                .type("upload")
+                .uploadedBy(admin.getId())
+                .totalProjects(requests.size())
+                .successCount(successCount)
+                .failedCount(failedCount)
+                .status(batchStatus)
+                .build();
+        projectBatchRepository.save(batch);
+
         if (!projectsToSave.isEmpty()) {
             projectRepository.saveAllAndFlush(projectsToSave);
-            log.info("Bulk insert proyek berhasil: {} proyek disimpan", projectsToSave.size());
+            batch.getProjects().addAll(projectsToSave);
+            projectBatchRepository.save(batch);
+            log.info("Bulk insert proyek berhasil: {} proyek disimpan, batch ID: {}", projectsToSave.size(), batch.getId());
         }
 
         List<BulkInsertProjectRowErrorDTO> errors = toRowErrorList(validationErrors);
-        int successCount = projectsToSave.size();
-        int failedCount = validationErrors.size();
 
         return new BulkInsertProjectResultDTO(successCount, failedCount, errors);
     }
@@ -349,7 +377,7 @@ public class CreateProjectServiceImpl implements CreateProjectService {
                 .name(normalize(request.getName()))
                 .description(normalize(request.getDescription()))
                 .sector(Sector.fromValue(normalize(request.getSector())))
-                .status(ProjectStatus.DRAFT)
+                .status(ProjectStatus.TERVERIFIKASI)
                 .location(normalize(request.getLocation()))
                 .valueProposition(normalize(request.getValueProposition()))
                 .locationImageKey(locationImageKey)
