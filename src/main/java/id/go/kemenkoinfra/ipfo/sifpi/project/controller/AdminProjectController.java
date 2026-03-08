@@ -6,7 +6,10 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.AdminProjectListItemDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.BulkInsertProjectResultDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.BulkInsertProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.AdminProjectService;
+import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,6 +32,7 @@ import java.util.UUID;
 public class AdminProjectController {
 
     private final AdminProjectService adminProjectService;
+    private final CreateProjectService createProjectService;
     private final ResponseUtil responseUtil;
 
     /**
@@ -70,5 +75,14 @@ public class AdminProjectController {
                 .build();
 
         return responseUtil.success(pagedResponse, "Daftar proyek berhasil diambil.", HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/bulk")
+    public ResponseEntity<BaseResponseDTO<BulkInsertProjectResultDTO>> bulkInsertProjects(
+            @RequestBody List<BulkInsertProjectRequest> requests) {
+
+        BulkInsertProjectResultDTO result = createProjectService.bulkInsertProjects(requests);
+        return responseUtil.success(result, "Bulk insert proyek selesai.", HttpStatus.CREATED);
     }
 }
