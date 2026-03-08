@@ -2,6 +2,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.common.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,9 @@ public class DataSeeder {
     private final RolePermissionRepository rolePermissionRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.seed.password:password123}")
+    private String seedPassword;
 
     @Bean
     CommandLineRunner seedData() {
@@ -159,7 +163,7 @@ public class DataSeeder {
 
         User admin = new User();
         admin.setEmail("admin@sifpi.go.id");
-        admin.setPassword(passwordEncoder.encode("admin123"));
+        admin.setPassword(passwordEncoder.encode(seedPassword));
         admin.setName("Administrator");
         admin.setRole(adminRole);
 
@@ -171,7 +175,7 @@ public class DataSeeder {
         if (!userRepository.existsByEmail("projectowner@sifpi.go.id")) {
             User projectOwner = new User();
             projectOwner.setEmail("projectowner@sifpi.go.id");
-            projectOwner.setPassword(passwordEncoder.encode("projectowner123"));
+            projectOwner.setPassword(passwordEncoder.encode(seedPassword));
             projectOwner.setName("Project Owner");
             projectOwner.setRole(roleRepository.findByName("PROJECT_OWNER")
                     .orElseThrow(() -> new IllegalStateException("Role PROJECT_OWNER belum ada.")));
@@ -183,7 +187,7 @@ public class DataSeeder {
         if (!userRepository.existsByEmail("executive@sifpi.go.id")) {
             User executive = new User();
             executive.setEmail("executive@sifpi.go.id");
-            executive.setPassword(passwordEncoder.encode("executive123"));
+            executive.setPassword(passwordEncoder.encode(seedPassword));
             executive.setName("Executive");
             executive.setRole(roleRepository.findByName("EXECUTIVE")
                     .orElseThrow(() -> new IllegalStateException("Role EXECUTIVE belum ada.")));
@@ -195,7 +199,7 @@ public class DataSeeder {
         if (!userRepository.existsByEmail("investor@pt.com")) {
             User investor = new User();
             investor.setEmail("investor@pt.com");
-            investor.setPassword(passwordEncoder.encode("investor123"));
+            investor.setPassword(passwordEncoder.encode(seedPassword));
             investor.setName("Investor");
             investor.setRole(roleRepository.findByName("INVESTOR")
                     .orElseThrow(() -> new IllegalStateException("Role INVESTOR belum ada.")));
