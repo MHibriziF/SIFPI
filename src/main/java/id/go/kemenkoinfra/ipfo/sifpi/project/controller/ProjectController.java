@@ -1,10 +1,12 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.controller;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
-import id.go.kemenkoinfra.ipfo.sifpi.project.dto.CatalogueExportResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.CatalogueExportFileDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.CatalogueExportService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.ReadProjectService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -80,12 +82,18 @@ public class ProjectController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/catalogue/export")
-    public ResponseEntity<BaseResponseDTO<CatalogueExportResponseDTO>> exportCatalogue(
+    @PostMapping(value = "/catalogue/export", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<byte[]> exportCatalogue(
             @Valid @RequestBody CatalogueExportRequest request) {
 
-        CatalogueExportResponseDTO result = catalogueExportService.exportCatalogue(request);
-        return responseUtil.success(result, "Katalog proyek berhasil diekspor.", HttpStatus.OK);
+        CatalogueExportFileDTO result = catalogueExportService.exportCatalogue(request);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(result.getFilename())
+                        .build()
+                        .toString())
+                .body(result.getData());
     }
 
     /**

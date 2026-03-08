@@ -2,7 +2,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.project.service.impl;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.services.StorageService;
-import id.go.kemenkoinfra.ipfo.sifpi.project.dto.CatalogueExportResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.CatalogueExportFileDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CatalogueExportRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectRevision;
@@ -19,11 +19,9 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -39,7 +37,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CatalogueExportServiceImpl implements CatalogueExportService {
 
-    private static final String STORAGE_FOLDER = "catalogues";
     private static final Set<String> VALID_QUARTERS = Set.of("Q1", "Q2", "Q3", "Q4");
     private static final float PAGE_MARGIN = 50f;
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
@@ -49,7 +46,7 @@ public class CatalogueExportServiceImpl implements CatalogueExportService {
 
     @Override
     @Transactional(readOnly = true)
-    public CatalogueExportResponseDTO exportCatalogue(CatalogueExportRequest request) {
+    public CatalogueExportFileDTO exportCatalogue(CatalogueExportRequest request) {
         List<Long> normalizedProjectIds = normalizeProjectIds(request.getProjectIds());
         String normalizedQuarter = normalizeQuarter(request.getQuarter());
         validateYear(request.getYear());
@@ -58,12 +55,9 @@ public class CatalogueExportServiceImpl implements CatalogueExportService {
         byte[] pdfBytes = generatePdf(projects, normalizedQuarter, request.getYear());
 
         String filename = "catalogue-" + normalizedQuarter.toLowerCase(Locale.ROOT) + "-" + request.getYear() + ".pdf";
-        MultipartFile pdfMultipart = new InMemoryMultipartFile(filename, "application/pdf", pdfBytes);
-        String fileKey = storageService.upload(STORAGE_FOLDER, pdfMultipart);
-
-        return CatalogueExportResponseDTO.builder()
-                .fileKey(fileKey)
-                .fileUrl(storageService.getPublicUrl(fileKey))
+        return CatalogueExportFileDTO.builder()
+                .filename(filename)
+                .data(pdfBytes)
                 .build();
     }
 
@@ -366,50 +360,4 @@ public class CatalogueExportServiceImpl implements CatalogueExportService {
         return dateTime.format(DATE_TIME_FORMATTER);
     }
 
-    @RequiredArgsConstructor
-    private static class InMemoryMultipartFile implements MultipartFile {
-        private final String originalFilename;
-        private final String contentType;
-        private final byte[] content;
-
-        @Override
-        public String getName() {
-            return originalFilename;
-        }
-
-        @Override
-        public String getOriginalFilename() {
-            return originalFilename;
-        }
-
-        @Override
-        public String getContentType() {
-            return contentType;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return content == null || content.length == 0;
-        }
-
-        @Override
-        public long getSize() {
-            return content == null ? 0 : content.length;
-        }
-
-        @Override
-        public byte[] getBytes() {
-            return content;
-        }
-
-        @Override
-        public InputStream getInputStream() {
-            return new java.io.ByteArrayInputStream(content);
-        }
-
-        @Override
-        public void transferTo(java.io.File dest) throws IOException, IllegalStateException {
-            java.nio.file.Files.write(dest.toPath(), content);
-        }
-    }
 }
