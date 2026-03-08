@@ -72,6 +72,15 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    // Status change audit trail (for deactivation - UM-11)
+    @Column(length = 255)
+    private String changedBy;
+
+    private LocalDateTime changedAt;
+
+    @Column(length = 50)
+    private String action;
+
     // Investor profile relationship (optional - only for investors)
     // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
