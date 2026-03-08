@@ -1,6 +1,9 @@
 package id.go.kemenkoinfra.ipfo.sifpi.common.services;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -43,6 +46,43 @@ public class StorageServiceImpl implements StorageService {
             return key;
         } catch (IOException e) {
             throw new RuntimeException("Gagal mengunggah file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String uploadFromUrl(String folder, String sourceUrl) {
+        String extension = getExtension(sourceUrl.contains("?") ? sourceUrl.substring(0, sourceUrl.indexOf('?')) : sourceUrl);
+        String key = folder + "/" + UUID.randomUUID() + extension;
+
+        try {
+            HttpURLConnection connection = (HttpURLConnection) URI.create(sourceUrl).toURL().openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10_000);
+            connection.setReadTimeout(30_000);
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                throw new RuntimeException("Gagal mengunduh file dari URL: HTTP " + responseCode);
+            }
+
+            String contentType = connection.getContentType();
+            long contentLength = connection.getContentLengthLong();
+
+            try (InputStream inputStream = connection.getInputStream()) {
+                byte[] data = inputStream.readAllBytes();
+
+                PutObjectRequest request = PutObjectRequest.builder()
+                        .bucket(storageProperties.getBucketName())
+                        .key(key)
+                        .contentType(contentType)
+                        .build();
+
+                s3Client.putObject(request, RequestBody.fromBytes(data));
+                log.info("File uploaded from URL: {}", key);
+                return key;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Gagal mengunduh file dari URL: " + e.getMessage(), e);
         }
     }
 
