@@ -166,6 +166,7 @@ public class DataSeeder {
         admin.setPassword(passwordEncoder.encode(seedPassword));
         admin.setName("Administrator");
         admin.setRole(adminRole);
+        admin.setEmailVerified(true);
 
         userRepository.save(admin);
         log.info("User admin default dibuat: admin@sifpi.go.id");
@@ -179,7 +180,7 @@ public class DataSeeder {
             projectOwner.setName("Project Owner");
             projectOwner.setRole(roleRepository.findByName("PROJECT_OWNER")
                     .orElseThrow(() -> new IllegalStateException("Role PROJECT_OWNER belum ada.")));
-
+            projectOwner.setEmailVerified(true);
             userRepository.save(projectOwner);
             log.info("User project owner default dibuat: projectowner@sifpi.go.id");
         }
@@ -191,7 +192,7 @@ public class DataSeeder {
             executive.setName("Executive");
             executive.setRole(roleRepository.findByName("EXECUTIVE")
                     .orElseThrow(() -> new IllegalStateException("Role EXECUTIVE belum ada.")));
-
+            executive.setEmailVerified(true);
             userRepository.save(executive);
             log.info("User executive default dibuat: executive@sifpi.go.id");
         }
@@ -203,7 +204,7 @@ public class DataSeeder {
             investor.setName("Investor");
             investor.setRole(roleRepository.findByName("INVESTOR")
                     .orElseThrow(() -> new IllegalStateException("Role INVESTOR belum ada.")));
-
+            investor.setEmailVerified(true);
             userRepository.save(investor);
             log.info("User investor default dibuat: investor@pt.com");
         }
