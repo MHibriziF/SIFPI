@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>IPFO Project Catalogue</title>
+    <style>
+        /*
+         * ╔══════════════════════════════════════════════════════════╗
+         * ║  CSS COMPATIBILITY — OpenHTMLtoPDF / flying-saucer       ║
+         * ╠══════════════════════════════════════════════════════════╣
+         * ║  ✓ SUPPORTED : position absolute/relative, table layout, ║
+         * ║    border, padding, margin, background-color, font-*,    ║
+         * ║    overflow:hidden, page-break-*, width/height mm/pt/%,  ║
+         * ║    border-radius (partial), opacity                      ║
+         * ║  ✗ NOT SUPPORTED : flexbox, CSS grid, gap, inset,        ║
+         * ║    object-fit, -webkit-line-clamp, linear-gradient,      ║
+         * ║    display:flex/grid, calc() in most contexts            ║
+         * ╠══════════════════════════════════════════════════════════╣
+         * ║  STRATEGY: all multi-column layouts use table layout.     ║
+         * ║  Heights are fixed in mm so each page fits in 297mm.     ║
+         * ╠══════════════════════════════════════════════════════════╣
+         * ║  PROJECT PAGE HEIGHT BUDGET (padding 14px top+bottom):   ║
+         * ║    Band           8mm                                    ║
+         * ║    Head          14mm  (title 8 + subtitle 6)            ║
+         * ║    Narrative     54mm  (img 38 + text 12 + pad 4)        ║
+         * ║    Two-col      130mm  (structure 64 + addl 52 + gap 14) ║
+         * ║    Timeline      46mm  (header + up-to-5 rows @ 8mm)     ║
+         * ║    Gaps (×6)     18mm                                    ║
+         * ║    Footer bar     4mm                                    ║
+         * ║    TOTAL        274mm  — fits in 287mm inner height ✓    ║
+         * ╚══════════════════════════════════════════════════════════╝
+         */
+
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.3;
+            color: #1f2937;
+        }
+
+        /* ────────────────────────────────────────────────────────────
+           PAGE SHELL
+           ─────────────────────────────────────────────────────────── */
+        .page {
+            width: 210mm;
+            height: 297mm;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+        }
+        .page:last-child {
+            page-break-after: auto;
+        }
+
+
+        /* ────────────────────────────────────────────────────────────
+           COVER PAGE
+           ─────────────────────────────────────────────────────────── */
+        .cover-page {
+            background-color: #0a2f63;
+            color: #ffffff;
+        }
+
+        .cover-bg {
+            position: absolute;
+            left: 0; top: 0;
+            width: 210mm;
+            height: 297mm;
+        }
+
+        .cover-overlay {
+            position: absolute;
+            left: 0; top: 0;
+            width: 210mm;
+            height: 297mm;
+            background-color: #0a2f63;
+            opacity: 0.55;
+        }
+
+        /* Use absolute positioning to place content at top area */
+        .cover-content-block {
+            position: absolute;
+            left: 36px;
+            top: 36px;
+            width: 140mm;
+        }
+
+        .cover-logo {
+            width: 88px;
+            height: auto;
+            display: block;
+            margin-bottom: 18mm;
+        }
+
+        .cover-eyebrow {
+            font-size: 8.5pt;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            color: #b8cfe8;
+            margin: 0 0 5px;
+        }
+
+        .cover-rule {
+            width: 52px;
+            height: 3px;
+            background-color: #4da6e8;
+            margin-bottom: 10px;
+        }
+
+        .cover-title-main {
+            margin: 0 0 5px;
+            font-size: 34pt;
+            font-weight: 700;
+            line-height: 1.05;
+            color: #ffffff;
+        }
+
+        .cover-title-sub {
+            margin: 0;
+            font-size: 17pt;
+            font-weight: 400;
+            line-height: 1.1;
+            color: #c8ddf0;
+        }
+
+
+        /* ────────────────────────────────────────────────────────────
+           CONTENT PAGES  (TOC, Usage)
+           ─────────────────────────────────────────────────────────── */
+        .content-page {
+            background-color: #edf0f5;
+        }
+
+        .content-left-bar {
+            position: absolute;
+            left: 0; top: 0;
+            width: 7px;
+            height: 297mm;
+            background-color: #0f4c8b;
+        }
+
+        .content-logo-wrap {
+            position: absolute;
+            right: 28px;
+            top: 22px;
+        }
+        .content-logo-wrap img { width: 32px; height: auto; }
+
+        /* content sits to the right of the left bar */
+        .content-inner {
+            margin-left: 7px;
+            padding: 36px 64px 32px 20px;
+        }
+
+        .content-title {
+            font-size: 24pt;
+            font-weight: 700;
+            color: #0a2f63;
+            line-height: 1.1;
+            margin: 0 0 22px;
+        }
+
+        /* TOC: table with dotted separator */
+        .toc-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .toc-table td {
+            padding: 0 0 8px;
+            vertical-align: bottom;
+            font-size: 11pt;
+            font-weight: 700;
+            color: #173b63;
+        }
+        .toc-name { width: 80%; }
+        .toc-page {
+            width: 20%;
+            text-align: right;
+            color: #0f4c8b;
+            white-space: nowrap;
+        }
+        .toc-underline {
+            border: none;
+            border-top: 1px dotted #9fb2c6;
+            margin: 3px 0 0;
+        }
+
+        /* Usage */
+        .usage-body { font-size: 10.5pt; line-height: 1.45; color: #202020; }
+        .usage-body p { margin: 0 0 10px; }
+        .usage-body ul { margin: 0; padding-left: 20px; }
+        .usage-body li { margin-bottom: 8px; }
+
+
+        /* ────────────────────────────────────────────────────────────
+           PROJECT PAGE
+           ─────────────────────────────────────────────────────────── */
+        .project-page {
+            background-color: #f4f6f9;
+            /* left 26px to leave room for the accent bar */
+            padding: 14px 20px 24px 26px;
+        }
+
+        .project-left-accent {
+            position: absolute;
+            left: 0; top: 0;
+            width: 6px;
+            height: 297mm;
+            background-color: #0a2f63;
+        }
+
+        .project-logo-badge {
+            position: absolute;
+            right: 20px;
+            top: 14px;
+        }
+        .project-logo-badge img { width: 26px; height: auto; }
+
+        /* Band */
+        .project-band {
+            background-color: #073d56;
+            color: #ffffff;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 7.5pt;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            margin-bottom: 5px;
+            height: 8mm;
+            overflow: hidden;
+        }
+
+        /* Head */
+        .project-title {
+            margin: 0 36px 3px 0;
+            font-size: 13.5pt;
+            font-weight: 700;
+            color: #0a2f63;
+            line-height: 1.15;
+            height: 9mm;
+            overflow: hidden;
+        }
+        .project-subtitle {
+            margin: 0 36px 0 0;
+            font-size: 8pt;
+            color: #5a7288;
+            line-height: 1.3;
+            border-top: 1px solid #b0c5d8;
+            padding-top: 3px;
+            min-height: 7mm;
+            height: auto;
+            white-space: pre-line;
+        }
+
+        /* Spacer rows */
+        .sp3 { height: 3mm; font-size: 1pt; line-height: 1pt; }
+        .sp2 { height: 2mm; font-size: 1pt; line-height: 1pt; }
+
+        /* Section chrome */
+        .section-title {
+            background-color: #0a415f;
+            color: #ffffff;
+            border-radius: 4px 4px 0 0;
+            text-align: center;
+            font-size: 7.5pt;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 4px 6px;
+            line-height: 1.25;
+        }
+        .section-body {
+            border: 1px solid #b0c5d5;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            background-color: #ffffff;
+            padding: 7px;
+            overflow: hidden;
+        }
+
+        /* Strategic narrative two-column table */
+        .narrative-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .narrative-img-td {
+            width: 42%;
+            padding-right: 7px;
+            vertical-align: top;
+        }
+        .narrative-text-td {
+            width: 58%;
+            vertical-align: top;
+        }
+
+        .strategic-image-wrap {
+            width: 100%;
+            height: 46mm;
+            overflow: hidden;
+            background-color: #d9e5ee;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .strategic-image-wrap img {
+            width: 100%;
+            height: 46mm;
+        }
+
+        .narrative {
+            font-size: 8.5pt;
+            line-height: 1.38;
+            color: #2d3748;
+            height: 46mm;
+            overflow: hidden;
+        }
+        .narrative p { margin: 0 0 5px; }
+
+        /* Two-column layout */
+        .two-col-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .col-left-td  {
+            width: 57%;
+            padding-right: 4px;
+            vertical-align: top;
+        }
+        .col-right-td {
+            width: 43%;
+            padding-left: 4px;
+            vertical-align: top;
+        }
+
+        /* Structure image */
+        .structure-image-wrap {
+            width: 100%;
+            height: 60mm;
+            overflow: hidden;
+            background-color: #d9e5ee;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .structure-image-wrap img {
+            width: 100%;
+            height: 60mm;
+        }
+
+        /* Additional list */
+        .additional-list {
+            margin: 0;
+            padding-left: 14px;
+            font-size: 8.5pt;
+            line-height: 1.38;
+            color: #2d3748;
+        }
+        .additional-list li { margin-bottom: 3px; }
+
+        /* Card grid — 2 columns */
+        .card-grid {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .card-grid td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0 2px 4px 0;
+        }
+        .card-grid td.cg-right { padding: 0 0 4px 2px; }
+        .card-grid td.cg-full  { padding: 0; }
+
+        /* Financial grid — 3 columns */
+        .fin-grid {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .fin-grid td {
+            width: 33.33%;
+            vertical-align: top;
+            padding: 0 2px 4px 0;
+        }
+        .fin-grid td.fg-last { padding-right: 0; }
+        .fin-grid td.fg-irr  { width: 66.66%; }
+
+        /* Card component */
+        .card {
+            border: 1px solid #b0c5d5;
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+        .card-label {
+            background-color: #0f4c8a;
+            color: #ffffff;
+            text-align: center;
+            font-size: 6.5pt;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 3px 4px;
+            line-height: 1.2;
+        }
+        .card-value {
+            padding: 4px 5px;
+            text-align: center;
+            font-size: 8pt;
+            line-height: 1.25;
+            color: #1a2e42;
+            min-height: 10mm;
+            height: auto;
+            overflow: visible;
+            white-space: pre-line;
+            word-wrap: break-word;
+        }
+        .project-status-value {
+            height: auto;
+            min-height: 10mm;
+            overflow: visible;
+            white-space: pre-line;
+        }
+
+        /* Timeline */
+        .timeline-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 8pt;
+        }
+        .timeline-table th,
+        .timeline-table td {
+            border: 1px solid #c2cfda;
+            padding: 4px 7px;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+        .timeline-table th {
+            background-color: #0f4c8a;
+            color: #ffffff;
+            font-size: 7.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .timeline-table th.col-year { width: 26%; }
+        .timeline-table td {
+            background-color: #ffffff;
+            color: #2d3748;
+            height: 8mm;
+            overflow: hidden;
+        }
+        .timeline-table tr.tl-even td { background-color: #f0f5f9; }
+        .timeline-table td.year-cell {
+            font-weight: 600;
+            color: #0a415f;
+            white-space: nowrap;
+        }
+
+        /* Footer accent */
+        .project-footer {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 210mm;
+            height: 4px;
+            background-color: #1565a8;
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     COVER PAGE
+     ═════════════════════════════════════════════════════════════ -->
+<section class="page cover-page">
+    <img class="cover-bg"
+         th:if="${coverImageSrc != null}"
+         th:src="${coverImageSrc}"
+         alt="Catalogue Cover" />
+    <div class="cover-overlay"></div>
+    <div class="cover-content-block">
+        <img class="cover-logo" th:src="${logoSrc}" alt="IPFO" />
+        <p class="cover-eyebrow">Infrastructure Project Facilitation Office</p>
+        <div class="cover-rule"></div>
+        <h1 class="cover-title-main"
+            th:text="'IPFO ' + ${quarter} + ' ' + ${year}">IPFO Q1 2026</h1>
+        <p class="cover-title-sub">Project Catalogue</p>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ═════════════════════════════════════════════════════════════ -->
+<section class="page content-page">
+    <div class="content-left-bar"></div>
+    <div class="content-logo-wrap">
+        <img th:src="${logoSrc}" alt="IPFO" />
+    </div>
+    <div class="content-inner">
+        <h2 class="content-title">Table of Contents</h2>
+        <table class="toc-table">
+            <tbody>
+            <tr th:each="project : ${projects}">
+                <td class="toc-name">
+                    <span th:text="'Proposed by ' + ${project.proposedBy}">Proposed by Ministry</span>
+                    <hr class="toc-underline" />
+                </td>
+                <td class="toc-page"
+                    th:text="'Pg. ' + ${project.pageNumber}">Pg. 4</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     USING THE CATALOGUE
+     ═════════════════════════════════════════════════════════════ -->
+<section class="page content-page">
+    <div class="content-left-bar"></div>
+    <div class="content-logo-wrap">
+        <img th:src="${logoSrc}" alt="IPFO" />
+    </div>
+    <div class="content-inner">
+        <h2 class="content-title">Using the Catalogue</h2>
+        <div class="usage-body">
+            <p>This catalogue features a <strong>selection of projects available for
+                investments</strong> proposed by ministries and institutions of the
+                Government of Indonesia.</p>
+            <p>Several things to note:</p>
+            <ul>
+                <li>This catalogue <strong>does not represent all infrastructure projects
+                    in Indonesia</strong>. It includes a <strong>list of projects that are
+                    available for investment</strong> as of this quarterly update.</li>
+                <li>The listed projects are those that <strong>involve private sector
+                    participation</strong>, such as through Public-Private Partnerships
+                    (PPP), Joint Ventures (JV), or similar cooperation models. It
+                    <strong>does not include</strong> projects fully funded by the state
+                    or regional budgets (APBN/APBD).</li>
+                <li>All figures and data in this catalogue are <strong>preliminary owner
+                    estimates</strong> and may require further validation and study by
+                    potential investors.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     PROJECT PAGES  (one section per project)
+     ═════════════════════════════════════════════════════════════ -->
+<section class="page project-page" th:each="project, iterStat : ${projects}">
+
+    <div class="project-left-accent"></div>
+    <div class="project-logo-badge">
+        <img th:src="${logoSrc}" alt="IPFO" />
+    </div>
+
+    <!-- Band -->
+    <div class="project-band"
+         th:text="'Project / Investment Scheme — ' + ${project.investmentScheme}">
+        Project / Investment Scheme — PPP
+    </div>
+
+    <!-- Project head -->
+    <h3 class="project-title" th:text="${project.title}">Project Name</h3>
+    <p class="project-subtitle" th:text="${project.subtitle}">Project subtitle</p>
+
+    <div class="sp3">&#160;</div>
+
+    <!-- Strategic Narrative -->
+    <div class="section-title">Strategic Narrative / Value Proposition</div>
+    <div class="section-body">
+        <table class="narrative-table">
+            <tbody>
+            <tr>
+                <td class="narrative-img-td">
+                    <div class="strategic-image-wrap">
+                        <img th:if="${project.locationImageSrc != null}"
+                             th:src="${project.locationImageSrc}"
+                             alt="Location Image" />
+                    </div>
+                </td>
+                <td class="narrative-text-td">
+                    <div class="narrative">
+                        <p th:each="paragraph : ${project.narrativeParagraphs}"
+                           th:text="${paragraph}">Narrative text.</p>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="sp3">&#160;</div>
+
+    <!-- Two-column area -->
+    <table class="two-col-table">
+        <tbody>
+        <tr>
+
+            <!-- ── LEFT: Structure + Additional Info ── -->
+            <td class="col-left-td">
+
+                <div class="section-title">Project Structure</div>
+                <div class="section-body" style="padding:5px;">
+                    <div class="structure-image-wrap">
+                        <img th:if="${project.projectStructureImageSrc != null}"
+                             th:src="${project.projectStructureImageSrc}"
+                             alt="Project Structure" />
+                    </div>
+                </div>
+
+                <div class="sp2">&#160;</div>
+
+                <div class="section-title">Additional Information</div>
+                <div class="section-body" style="height:50mm; overflow:hidden;">
+                    <ul class="additional-list">
+                        <li th:each="line : ${project.additionalInfoLines}"
+                            th:text="${line}">Additional item</li>
+                    </ul>
+                </div>
+
+            </td>
+
+            <!-- ── RIGHT: Project Info + Financials ── -->
+            <td class="col-right-td">
+
+                <div class="section-title">Project Information</div>
+                <div class="section-body" style="padding:5px;">
+                    <table class="card-grid">
+                        <tbody>
+                        <tr>
+                            <td>
+                                <div class="card">
+                                    <div class="card-label">Location</div>
+                                    <div class="card-value"
+                                         th:text="${project.location}">—</div>
+                                </div>
+                            </td>
+                            <td class="cg-right">
+                                <div class="card">
+                                    <div class="card-label">Sector</div>
+                                    <div class="card-value"
+                                         th:text="${project.sectorLabel}">—</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="card">
+                                    <div class="card-label">Scope of Investment / Partnership</div>
+                                    <div class="card-value"
+                                         th:text="${project.scopeOfInvestment}">—</div>
+                                </div>
+                            </td>
+                            <td class="cg-right">
+                                <div class="card">
+                                    <div class="card-label">Length of Concession</div>
+                                    <div class="card-value"
+                                         th:text="${project.lengthOfConcession}">—</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="card">
+                                    <div class="card-label">Project Details</div>
+                                    <div class="card-value"
+                                         th:text="${project.projectDetails}">—</div>
+                                </div>
+                            </td>
+                            <td class="cg-right">
+                                <div class="card">
+                                    <div class="card-label">Project / Asset Status</div>
+                                    <div class="card-value project-status-value"
+                                         th:text="${project.projectAssetStatus}">—</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="cg-full" colspan="2">
+                                <div class="card">
+                                    <div class="card-label">Indicative Government Support</div>
+                                    <div class="card-value"
+                                         th:text="${project.indicativeGovernmentSupport}">—</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sp2">&#160;</div>
+
+                <div class="section-title">Financials</div>
+                <div class="section-body" style="padding:5px;">
+                    <table class="fin-grid">
+                        <tbody>
+                        <tr>
+                            <td>
+                                <div class="card">
+                                    <div class="card-label">Total CAPEX</div>
+                                    <div class="card-value"
+                                         th:text="${project.totalCapex}">—</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="card">
+                                    <div class="card-label">Total OPEX</div>
+                                    <div class="card-value"
+                                         th:text="${project.totalOpex}">—</div>
+                                </div>
+                            </td>
+                            <td class="fg-last">
+                                <div class="card">
+                                    <div class="card-label">NPV</div>
+                                    <div class="card-value"
+                                         th:text="${project.npv}">—</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fg-irr" colspan="2">
+                                <div class="card">
+                                    <div class="card-label">IRR</div>
+                                    <div class="card-value"
+                                         th:text="${project.irr}">—</div>
+                                </div>
+                            </td>
+                            <td class="fg-last">
+                                <div class="card">
+                                    <div class="card-label">Revenue Stream</div>
+                                    <div class="card-value"
+                                         th:text="${project.revenueStream}">—</div>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="sp3">&#160;</div>
+
+    <!-- Indicative Timeline -->
+    <div class="section-title">Indicative Timeline</div>
+    <div class="section-body" style="padding:0; overflow:hidden;">
+        <table class="timeline-table">
+            <thead>
+            <tr>
+                <th class="col-year">Year Range</th>
+                <th>Phase Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item, ts : ${project.timelineItems}"
+                th:class="${ts.index % 2 == 1} ? 'tl-even' : ''">
+                <td class="year-cell" th:text="${item.yearRange}">Q1 2026</td>
+                <td th:text="${item.phaseDescription}">Phase description</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="project-footer"></div>
+
+</section>
+
+</body>
+</html>

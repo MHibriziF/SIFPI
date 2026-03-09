@@ -27,6 +27,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("select lower(u.email) from User u where lower(u.email) in :emails")
     List<String> findExistingEmailsIgnoreCase(@Param("emails") Collection<String> emails);
 
+    @Query("select u from User u where lower(u.email) in :emails")
+    List<User> findAllByEmailInIgnoreCase(@Param("emails") Collection<String> emails);
+
 // ── UM-6: single filter query — caller controls ORDER BY via Pageable ──────
 
     // Sort options (use as PageRequest.of(page, size, Sort.by(...))):
