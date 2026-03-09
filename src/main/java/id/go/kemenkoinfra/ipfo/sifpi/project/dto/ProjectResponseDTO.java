@@ -1,6 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,4 +44,11 @@ public class ProjectResponseDTO {
     private String additionalInfo;
     private List<ProjectTimelineResponseDTO> timelines;
     private Boolean isSubmitted;
+
+    // PM-4: rejection reason is included when the project is in a rejected state.
+    // TODO: populate once the status-history feature is completed by the relevant team member.
+    private String rejectionReason;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime editedAt;
 }
