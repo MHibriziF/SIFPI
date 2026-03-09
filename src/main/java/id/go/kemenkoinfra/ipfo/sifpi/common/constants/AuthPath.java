@@ -19,7 +19,8 @@ public final class AuthPath {
         API + LOGIN,
         API + LOGOUT,
         API + SET_PASSWORD,
-        API + "/catalogue/**"  // PM-10: Public project catalogue
+        API + "/catalogue/**",  // PM-10: Public project catalogue
+        API + "/auth/organizations/**"  // Organization management for registration
     };
 
 }
