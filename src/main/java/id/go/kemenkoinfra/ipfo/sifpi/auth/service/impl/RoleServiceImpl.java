@@ -3,23 +3,36 @@ package id.go.kemenkoinfra.ipfo.sifpi.auth.service.impl;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
-import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleSummaryDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleUserDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.PermissionRequest;
-import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.UpdateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RoleMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Resource;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RoleAuditLog;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RolePermission;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ResourceRepository;
-import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Action;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleAuditLogRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RolePermissionRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.InvestorProfileRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Action;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,10 +42,68 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class RoleServiceImpl implements RoleService {
 
+    private static final String ACTION_UPDATE = "UPDATE";
+    private static final String ROLE_INVESTOR = "INVESTOR";
+
     private final RoleRepository roleRepository;
     private final ResourceRepository resourceRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final RoleAuditLogRepository roleAuditLogRepository;
+    private final UserRepository userRepository;
+    private final InvestorProfileRepository investorProfileRepository;
     private final RoleMapper roleMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoleSummaryDTO> getAllRoles() {
+        List<Role> roles = roleRepository.findAll();
+        List<RoleSummaryDTO> result = roles.stream()
+                .map(role -> {
+                    RoleSummaryDTO dto = roleMapper.toSummaryDTO(role);
+                    dto.setUserCount(userRepository.countByRole(role));
+                    return dto;
+                })
+                .toList();
+        log.info("Fetched {} roles with user counts.", result.size());
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RoleUserDTO> getUsersByRole(UUID roleId, String search, Pageable pageable) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new NotFoundException("Role", roleId));
+
+        String normalizedSearch = (search == null) ? "" : search.trim();
+        boolean isInvestor = ROLE_INVESTOR.equals(role.getName());
+
+        Page<RoleUserDTO> result = userRepository
+                .findByRoleIdWithSearch(roleId, normalizedSearch, pageable)
+                .map(user -> {
+                    RoleUserDTO dto = roleMapper.toRoleUserDTO(user);
+                    if (isInvestor) {
+                        dto.setOrganisasi(user.getOrganization());
+                        investorProfileRepository.findByUserId(user.getId()).ifPresent(profile -> {
+                            dto.setSectorInterest(parseSectorInterest(profile.getSectorInterest()));
+                            dto.setBudgetRange(profile.getBudgetRange());
+                        });
+                    }
+                    return dto;
+                });
+
+        log.info("Fetched {} users for role='{}' with search='{}'", result.getTotalElements(), role.getName(), normalizedSearch);
+        return result;
+    }
+
+    private List<String> parseSectorInterest(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return List.of(raw.split(",")).stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
 
     @Override
     @Transactional
@@ -76,5 +147,80 @@ public class RoleServiceImpl implements RoleService {
         }
 
         return permissions;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RoleResponseDTO getRoleById(UUID id) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Role", id));
+
+        List<RolePermission> permissions = rolePermissionRepository.findByRoleWithResource(role);
+        log.info("Role detail fetched: id={}", id);
+        return roleMapper.toDTO(role, permissions);
+    }
+
+    @Override
+    @Transactional
+    public RoleResponseDTO updateRole(UUID id, UpdateRoleRequest request) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Role", id));
+
+        // Validate name uniqueness if name is being changed
+        if (request.getName() != null && !request.getName().equals(role.getName())) {
+            roleRepository.findByName(request.getName()).ifPresent(existing -> {
+                throw new IllegalStateException("Role dengan nama '" + request.getName() + "' sudah ada.");
+            });
+        }
+
+        // Capture before state for audit trail
+        List<RolePermission> oldPermissions = rolePermissionRepository.findByRoleWithResource(role);
+        String before = buildSnapshot(role, oldPermissions);
+
+        // Patch scalar fields (null-safe via MapStruct IGNORE strategy)
+        roleMapper.updateEntity(request, role);
+        roleRepository.save(role);
+
+        // Replace permissions only if the request explicitly provides the field
+        List<RolePermission> newPermissions;
+        if (request.getPermissions() != null) {
+            rolePermissionRepository.deleteByRole(role);
+            newPermissions = buildPermissions(role, request.getPermissions());
+            rolePermissionRepository.saveAll(newPermissions);
+        } else {
+            newPermissions = rolePermissionRepository.findByRoleWithResource(role);
+        }
+
+        // Capture after state and persist audit log
+        String after = buildSnapshot(role, newPermissions);
+        String actor = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
+        saveAuditLog(role, ACTION_UPDATE, actor, buildChangeDetails(before, after));
+
+        log.info("Role '{}' berhasil diperbarui oleh '{}'.", role.getName(), actor);
+        return roleMapper.toDTO(role, newPermissions);
+    }
+
+    private void saveAuditLog(Role role, String action, String changedBy, String details) {
+        roleAuditLogRepository.save(RoleAuditLog.builder()
+                .role(role)
+                .action(action)
+                .changedBy(changedBy)
+                .details(details)
+                .build());
+    }
+
+    private String buildSnapshot(Role role, List<RolePermission> permissions) {
+        String perms = permissions.stream()
+                .map(rp -> rp.getResourceName() + ":" + rp.getActionName())
+                .sorted()
+                .collect(Collectors.joining(", "));
+        return "name=" + role.getName()
+                + ", description=" + role.getDescription()
+                + ", status=" + role.isStatus()
+                + ", permissions=[" + perms + "]";
+    }
+
+    private String buildChangeDetails(String before, String after) {
+        return "BEFORE: {" + before + "} | AFTER: {" + after + "}";
     }
 }

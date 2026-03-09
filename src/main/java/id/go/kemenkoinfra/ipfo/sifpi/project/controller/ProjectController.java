@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,14 +19,16 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CatalogueExportRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectStatusHistoryDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.EditProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
+import id.go.kemenkoinfra.ipfo.sifpi.project.service.ReadProjectDetailService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.UpdateProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -37,6 +38,7 @@ public class ProjectController {
     private final CreateProjectService createProjectService;
     private final ReadProjectService readProjectService;
     private final CatalogueExportService catalogueExportService;
+    private final ReadProjectDetailService readProjectDetailService;
     private final UpdateProjectService updateProjectService;
     private final ResponseUtil responseUtil;
 
@@ -94,6 +96,33 @@ public class ProjectController {
                         .build()
                         .toString())
                 .body(result.getData());
+    }
+
+    /**
+     * PM-4: Get full detail of a single project owned by the authenticated project owner.
+     * Returns 404 if not found, 403 if the caller is not the owner.
+     */
+    @PreAuthorize("hasAuthority('PROJECT:READ')")
+    @GetMapping("/{id}")
+    public ResponseEntity<BaseResponseDTO<ProjectResponseDTO>> getProjectDetail(
+            @PathVariable Long id) {
+
+        ProjectResponseDTO result = readProjectDetailService.getProjectDetail(id);
+        return responseUtil.success(result, "Detail proyek berhasil diambil.", HttpStatus.OK);
+    }
+
+    /**
+     * PM-4: Get status-transition history of a project owned by the authenticated project owner.
+     * Returns 404 if not found, 403 if the caller is not the owner.
+     * Note: history data is pending implementation by another team member — returns null for now.
+     */
+    @PreAuthorize("hasAuthority('PROJECT:READ')")
+    @GetMapping("/{id}/history")
+    public ResponseEntity<BaseResponseDTO<List<ProjectStatusHistoryDTO>>> getProjectHistory(
+            @PathVariable Long id) {
+
+        List<ProjectStatusHistoryDTO> result = readProjectDetailService.getProjectHistory(id);
+        return responseUtil.success(result, "Riwayat status proyek berhasil diambil.", HttpStatus.OK);
     }
 
     /**

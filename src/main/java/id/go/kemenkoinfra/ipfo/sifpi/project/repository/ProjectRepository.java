@@ -71,4 +71,9 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
             @Param("search") String search,
             Pageable pageable
     );
+
+    /**
+     * Count total projects owned by a user — used for admin user detail (UM-7)
+     */
+    long countByOwnerId(UUID ownerId);
 }

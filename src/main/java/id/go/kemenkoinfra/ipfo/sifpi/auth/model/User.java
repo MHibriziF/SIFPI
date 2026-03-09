@@ -83,7 +83,7 @@ public class User {
 
     // Investor profile relationship (optional - only for investors)
     // Using mappedBy to avoid dual FK problem - InvestorProfile owns the relationship
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private InvestorProfile investorProfile;
 
     @CreationTimestamp

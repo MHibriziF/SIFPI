@@ -18,4 +18,6 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
 
     @Query("SELECT rp FROM RolePermission rp JOIN FETCH rp.resource WHERE rp.role = :role")
     List<RolePermission> findByRoleWithResource(@Param("role") Role role);
+
+    void deleteByRole(Role role);
 }
