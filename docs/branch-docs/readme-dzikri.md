@@ -739,3 +739,367 @@ Every successful update persists a record to the `role_audit_logs` table contain
 | `auth/model/RoleAuditLog.java` | Audit log entity — FK to `Role`, records every update |
 | `auth/repository/RoleAuditLogRepository.java` | Persists `RoleAuditLog`; provides `findByRoleOrderByTimestampDesc` for future history endpoint |
 | `auth/repository/RolePermissionRepository.java` | Adds `deleteByRole(Role)` for permission replacement |
+
+---
+
+# Get All Roles (Admin)
+
+## Endpoint
+
+```
+GET /api/roles
+```
+
+**Authorization:** Requires role `ADMIN` (`@PreAuthorize("hasRole('ADMIN')")`).
+
+---
+
+## Response
+
+**200 OK**
+
+```json
+{
+  "status": 200,
+  "message": "Daftar role berhasil diambil.",
+  "timestamp": "...",
+  "data": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "name": "INVESTOR",
+      "description": "Role untuk investor",
+      "userCount": 42
+    },
+    {
+      "id": "4gb96g75-6828-5673-c4gd-3d074g77bgb7",
+      "name": "ADMIN",
+      "description": "Role untuk admin",
+      "userCount": 3
+    }
+  ]
+}
+```
+
+---
+
+## Field Reference
+
+| Field       | Type     | Description                                          |
+| ----------- | -------- | ---------------------------------------------------- |
+| `id`        | `UUID`   | Role's unique identifier                             |
+| `name`      | `String` | Role name (e.g. `ADMIN`, `INVESTOR`)                 |
+| `description` | `String` | Role description                                   |
+| `userCount` | `long`   | Number of users currently assigned to this role      |
+
+---
+
+## Implementation Notes
+
+- **No pagination** — the number of roles in this system is small and bounded; returning the full list is appropriate.
+- **`userCount`:** derived from `UserRepository.countByRole(role)` — Spring Data derives the COUNT query automatically from the method name.
+- **Mapping:** `RoleMapper.toSummaryDTO(role)` (MapStruct) handles the entity → `RoleSummaryDTO` conversion; `userCount` is set manually after mapping since it comes from a separate repository call, not from the `Role` entity directly.
+- **Transaction:** `@Transactional(readOnly = true)` on the service method.
+- **Authorization:** `hasRole('ADMIN')` — role listing is an admin-only operation.
+- **Error handling:** no domain errors possible; relies on `GlobalExceptionHandler` for infrastructure-level failures.
+
+---
+
+## Files
+
+| File | Role |
+| ---- | ---- |
+| `auth/controller/RoleController.java` | Adds `GET /api/roles` endpoint |
+| `auth/service/RoleService.java` | Declares `List<RoleSummaryDTO> getAllRoles()` |
+| `auth/service/impl/RoleServiceImpl.java` | Implements `getAllRoles()` — fetches all roles, counts users per role |
+| `auth/dto/RoleSummaryDTO.java` | New response DTO — `id`, `name`, `description`, `userCount` |
+| `auth/mapper/RoleMapper.java` | Adds `toSummaryDTO(Role)` |
+| `auth/repository/UserRepository.java` | Adds `long countByRole(Role role)` |
+
+---
+
+# Get Users By Role (Admin)
+
+## Endpoint
+
+```
+GET /api/roles/{id}/users
+```
+
+**Authorization:** Requires role `ADMIN` (`@PreAuthorize("hasRole('ADMIN')")`).
+
+---
+
+## Path Parameters
+
+| Parameter | Type   | Required | Description               |
+| --------- | ------ | -------- | ------------------------- |
+| `id`      | `UUID` | Yes      | ID of the role to list users for |
+
+---
+
+## Query Parameters
+
+| Parameter | Type     | Required | Default    | Description                                             |
+| --------- | -------- | -------- | ---------- | ------------------------------------------------------- |
+| `search`  | `String` | No       | `""`       | Case-insensitive search on `name` and `email`           |
+| `page`    | `int`    | No       | `0`        | Page index (0-based)                                    |
+| `size`    | `int`    | No       | `20`       | Number of records per page                              |
+| `sort`    | `String` | No       | `name,asc` | Sort field and direction                                |
+
+---
+
+## Response
+
+**200 OK — non-INVESTOR role (e.g. ADMIN, EXECUTIVE, PROJECT_OWNER)**
+
+```json
+{
+  "status": 200,
+  "message": "Daftar pengguna berhasil diambil.",
+  "timestamp": "...",
+  "data": {
+    "content": [
+      {
+        "nama": "Budi Santoso",
+        "email": "budi@example.com"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 5,
+    "totalPages": 1,
+    "first": true,
+    "last": true
+  }
+}
+```
+
+**200 OK — INVESTOR role**
+
+```json
+{
+  "status": 200,
+  "message": "Daftar pengguna berhasil diambil.",
+  "timestamp": "...",
+  "data": {
+    "content": [
+      {
+        "nama": "Siti Rahayu",
+        "email": "siti@investor.com",
+        "organisasi": "PT Investasi Nusantara",
+        "sectorInterest": ["Energi", "Infrastruktur", "Pariwisata"],
+        "budgetRange": "10M - 50M USD"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 42,
+    "totalPages": 3,
+    "first": true,
+    "last": false
+  }
+}
+```
+
+**404 Not Found** — no role with the given `id` exists.
+
+```json
+{
+  "status": 404,
+  "message": "Role dengan ID '...' tidak ditemukan.",
+  "timestamp": "..."
+}
+```
+
+---
+
+## Field Reference
+
+### Base fields (all roles)
+
+| Field   | Type     | Description                   |
+| ------- | -------- | ----------------------------- |
+| `nama`  | `String` | User's full name (`User.name`) |
+| `email` | `String` | Email address                 |
+
+### INVESTOR-only fields (omitted via `@JsonInclude(NON_NULL)` for all other roles)
+
+| Field            | Type           | Description                                                                         |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------- |
+| `organisasi`     | `String`       | Company name — mapped from `User.organization`                                      |
+| `sectorInterest` | `List<String>` | Parsed from `InvestorProfile.sectorInterest` (comma-separated string, split + trim) |
+| `budgetRange`    | `String`       | Mapped from `InvestorProfile.budgetRange`                                           |
+
+---
+
+## Implementation Notes
+
+- **Role existence check:** `RoleRepository.findById(roleId)` is called first; throws `NotFoundException` (→ 404) if the role does not exist.
+- **Search:** `findByRoleIdWithSearch` — JPQL `LIKE LOWER(CONCAT('%', :search, '%'))` on both `name` and `email`. Empty string matches all records (no filtering).
+- **Investor enrichment:** the service checks `role.getName().equals("INVESTOR")` before fetching `InvestorProfile`. For all other roles, `organisasi`, `sectorInterest`, and `budgetRange` remain `null` and are omitted from the JSON response by `@JsonInclude(NON_NULL)` on `RoleUserDTO`.
+- **`sectorInterest` parsing:** `InvestorProfile.sectorInterest` is stored as a comma-separated string (e.g. `"Energi,Infrastruktur,Pariwisata"`). The service splits it, trims whitespace, and filters out blank entries before setting `List<String>` on the DTO.
+- **`organisasi`:** set directly from `User.organization` in the service — not from `InvestorProfile` — to mirror the `company_info.name` convention used in UM-7.
+- **Mapping:** `RoleMapper.toRoleUserDTO(User)` (MapStruct) handles `name → nama` and `email`; investor-only fields are `ignore`d in the mapper and set manually in the service.
+- **Pagination defaults:** `size = 20`, sorted by `name ASC` (`@PageableDefault`). Client can override all parameters via standard Spring MVC query parameters.
+- **Transaction:** `@Transactional(readOnly = true)` on the service method. Lazy relationships are not accessed — only scalar `User` fields and a separate `InvestorProfile` lookup are used.
+- **Error handling:** `NotFoundException` propagates to `GlobalExceptionHandler` — no manual catch.
+- **Authorization:** `hasRole('ADMIN')` — role-scoped user listing is an admin-only operation.
+- **Count query:** `findByRoleIdWithSearch` carries an explicit `countQuery` for correct `totalElements`/`totalPages` pagination metadata.
+
+---
+
+## Files
+
+| File | Role |
+| ---- | ---- |
+| `auth/controller/RoleController.java` | Adds `GET /api/roles/{id}/users` endpoint |
+| `auth/service/RoleService.java` | Declares `Page<RoleUserDTO> getUsersByRole(UUID, String, Pageable)` |
+| `auth/service/impl/RoleServiceImpl.java` | Implements `getUsersByRole` — role existence check, search, investor enrichment |
+| `auth/dto/RoleUserDTO.java` | New response DTO — `nama`, `email`; investor-only: `organisasi`, `sectorInterest`, `budgetRange` with `@JsonInclude(NON_NULL)` |
+| `auth/mapper/RoleMapper.java` | Adds `toRoleUserDTO(User)` mapping `name → nama`; investor fields ignored |
+| `auth/repository/UserRepository.java` | Adds `findByRoleIdWithSearch(UUID, String, Pageable)` with explicit count query |
+| `auth/repository/InvestorProfileRepository.java` | Reuses `findByUserId` for investor profile lookup |
+
+---
+
+# PM-4 — Get Project Detail & Status History (Project Owner)
+
+## Endpoints
+
+```
+GET /api/projects/{id}
+GET /api/projects/{id}/history
+```
+
+**Authorization:** Requires authority `PROJECT:READ` (`@PreAuthorize("hasAuthority('PROJECT:READ')")`).
+
+---
+
+## Path Parameters
+
+| Parameter | Type   | Required | Description                |
+| --------- | ------ | -------- | -------------------------- |
+| `id`      | `Long` | Yes      | Primary key of the project |
+
+---
+
+## GET /api/projects/{id} — Project Detail
+
+Returns the full detail of a single project. Only accessible by the project owner (RLS enforced via `ownerId`).
+
+### Response — 200 OK
+
+```json
+{
+  "status": 200,
+  "message": "Detail proyek berhasil diambil.",
+  "timestamp": "...",
+  "data": {
+    "id": 1,
+    "ownerId": "a1b2c3d4-...",
+    "name": "Proyek Infrastruktur X",
+    "description": "Deskripsi singkat proyek",
+    "sector": "ENERGI",
+    "status": "DRAFT",
+    "location": "Jakarta",
+    "valueProposition": "...",
+    "locationImageUrl": "https://storage.example.com/projects/uuid.png",
+    "ownerInstitution": "PT Contoh",
+    "contactPersonName": "Budi",
+    "contactPersonEmail": "budi@example.com",
+    "contactPersonPhone": "081234567890",
+    "cooperationModel": "KPBU",
+    "concessionPeriod": 25,
+    "assetReadiness": "Siap",
+    "projectStructureImageUrl": "https://storage.example.com/projects/uuid2.png",
+    "governmentSupport": "Dukungan pemerintah...",
+    "totalCapex": 100000000,
+    "totalOpex": 5000000,
+    "npv": 30000000,
+    "irr": 0.15,
+    "revenueStream": "Tarif pengguna",
+    "projectFileDownloadUrl": "https://storage.example.com/projects/uuid3.pdf",
+    "isFeasibilityStudy": true,
+    "additionalInfo": null,
+    "timelines": [
+      { "id": 1, "timeRange": "2026 Q1", "phaseDescription": "Persiapan lahan" }
+    ],
+    "isSubmitted": false,
+    "rejectionReason": null,
+    "createdAt": "2026-03-01T08:00:00",
+    "editedAt": "2026-03-08T10:00:00"
+  }
+}
+```
+
+> **`rejectionReason`** is always `null` for now — will be populated once the status-history feature (owned by a separate team member) is complete.
+
+### Error Responses
+
+| Status | Condition |
+| ------ | --------- |
+| `403 Forbidden` | The authenticated user is not the project owner |
+| `404 Not Found` | No project exists with the given `id` |
+
+---
+
+## GET /api/projects/{id}/history — Status Transition History
+
+Returns the ordered list of status transitions for the project. The same ownership RLS check applies.
+
+### Response — 200 OK
+
+```json
+{
+  "status": 200,
+  "message": "Riwayat status proyek berhasil diambil.",
+  "timestamp": "...",
+  "data": null
+}
+```
+
+> **`data` is `null`** — the status-history feature is pending implementation by another team member. The 404/403 ownership checks are fully active; only the history data itself is a stub.
+
+### History Entry Shape (future)
+
+Once implemented, each entry in `data` will have:
+
+| Field       | Type            | Description                                    |
+| ----------- | --------------- | ---------------------------------------------- |
+| `status`    | `String`        | Project status at this point (e.g. `DIAJUKAN`) |
+| `changedAt` | `LocalDateTime` | When the status transition occurred            |
+| `changedBy` | `String`        | Display name of the user who made the change   |
+| `notes`     | `String`        | Optional notes attached to the transition      |
+
+### Error Responses
+
+| Status | Condition |
+| ------ | --------- |
+| `403 Forbidden` | The authenticated user is not the project owner |
+| `404 Not Found` | No project exists with the given `id` |
+
+---
+
+## Implementation Notes
+
+- **RLS:** `ReadProjectDetailServiceImpl.enforceOwnership()` compares `project.ownerId` against the authenticated user's UUID. A mismatch throws `ForbiddenException` → 403. The check runs on both endpoints before any data is returned.
+- **Identity resolution:** same pattern as PM-3 — `SecurityContextHolder` → email → `UserRepository.findByEmail` → UUID.
+- **File URLs:** resolved via the existing `ProjectMapper.toDTO(project, storageService)` overload, which calls `storageService.getPublicUrl()` for `locationImageKey`, `projectStructureImageKey`, and `projectFileKey`.
+- **`rejectionReason`:** field added to `ProjectResponseDTO`; hardcoded `null` with a `TODO` comment pending the history feature.
+- **`createdAt` / `editedAt`:** added to `ProjectResponseDTO`; auto-mapped by MapStruct (same field names on the entity).
+- **History stub:** `getProjectHistory` validates ownership (404 / 403), logs the access, then returns `null`. No `ProjectStatusHistory` entity exists yet.
+- **Transaction:** `@Transactional(readOnly = true)` on both service methods. The lazy `@OneToMany` timelines collection is accessed safely within the open JPA session before mapping to DTO.
+- **Error handling:** `NotFoundException` and `ForbiddenException` propagate to `GlobalExceptionHandler` — no manual catch blocks.
+
+---
+
+## Files
+
+| File | Role |
+| ---- | ---- |
+| `project/controller/ProjectController.java` | Adds `GET /api/projects/{id}` and `GET /api/projects/{id}/history` endpoints |
+| `project/service/ReadProjectDetailService.java` | Service interface — declares `getProjectDetail` and `getProjectHistory` |
+| `project/service/impl/ReadProjectDetailServiceImpl.java` | Service implementation — RLS enforcement, fetch, mapping |
+| `project/dto/ProjectResponseDTO.java` | Added `rejectionReason`, `createdAt`, `editedAt` fields |
+| `project/dto/ProjectStatusHistoryDTO.java` | Response DTO for a single history entry (`status`, `changedAt`, `changedBy`, `notes`) |
+| `project/mapper/ProjectMapper.java` | Reused — `toDTO(project, storageService)` resolves file storage keys to public URLs |

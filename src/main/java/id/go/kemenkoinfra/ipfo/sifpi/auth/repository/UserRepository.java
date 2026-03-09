@@ -11,12 +11,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
     Optional<User> findById(UUID id);
+    long countByRole(Role role);
 
     Page<User> findAll(Pageable pageable);
 
@@ -54,6 +56,19 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             @Param("isVerified") Boolean isVerified,
             @Param("isActive") Boolean isActive,
             @Param("organisasi") String organisasi,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = "SELECT u FROM User u WHERE u.role.id = :roleId "
+            + "AND ('' = :search "
+            + "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) "
+            + "     OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))",
+            countQuery = "SELECT COUNT(u) FROM User u WHERE u.role.id = :roleId "
+            + "AND ('' = :search "
+            + "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) "
+            + "     OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<User> findByRoleIdWithSearch(
+            @Param("roleId") UUID roleId,
             @Param("search") String search,
             Pageable pageable);
 }

@@ -8,11 +8,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleResponseDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleSummaryDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.RoleUserDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.CreateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.PermissionRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.UpdateRoleRequest;
@@ -25,6 +29,8 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ResourceRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleAuditLogRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RolePermissionRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.RoleRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.InvestorProfileRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.service.RoleService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Action;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
@@ -37,12 +43,67 @@ import lombok.extern.slf4j.Slf4j;
 public class RoleServiceImpl implements RoleService {
 
     private static final String ACTION_UPDATE = "UPDATE";
+    private static final String ROLE_INVESTOR = "INVESTOR";
 
     private final RoleRepository roleRepository;
     private final ResourceRepository resourceRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final RoleAuditLogRepository roleAuditLogRepository;
+    private final UserRepository userRepository;
+    private final InvestorProfileRepository investorProfileRepository;
     private final RoleMapper roleMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoleSummaryDTO> getAllRoles() {
+        List<Role> roles = roleRepository.findAll();
+        List<RoleSummaryDTO> result = roles.stream()
+                .map(role -> {
+                    RoleSummaryDTO dto = roleMapper.toSummaryDTO(role);
+                    dto.setUserCount(userRepository.countByRole(role));
+                    return dto;
+                })
+                .toList();
+        log.info("Fetched {} roles with user counts.", result.size());
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RoleUserDTO> getUsersByRole(UUID roleId, String search, Pageable pageable) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new NotFoundException("Role", roleId));
+
+        String normalizedSearch = (search == null) ? "" : search.trim();
+        boolean isInvestor = ROLE_INVESTOR.equals(role.getName());
+
+        Page<RoleUserDTO> result = userRepository
+                .findByRoleIdWithSearch(roleId, normalizedSearch, pageable)
+                .map(user -> {
+                    RoleUserDTO dto = roleMapper.toRoleUserDTO(user);
+                    if (isInvestor) {
+                        dto.setOrganisasi(user.getOrganization());
+                        investorProfileRepository.findByUserId(user.getId()).ifPresent(profile -> {
+                            dto.setSectorInterest(parseSectorInterest(profile.getSectorInterest()));
+                            dto.setBudgetRange(profile.getBudgetRange());
+                        });
+                    }
+                    return dto;
+                });
+
+        log.info("Fetched {} users for role='{}' with search='{}'", result.getTotalElements(), role.getName(), normalizedSearch);
+        return result;
+    }
+
+    private List<String> parseSectorInterest(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return List.of(raw.split(",")).stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
 
     @Override
     @Transactional
