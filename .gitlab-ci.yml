@@ -8,29 +8,37 @@ stages:
 
 build:
   stage: build
-  image: gradle:8-jdk21
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
-    - gradle clean build -x test
-  artifacts:
-    paths:
-      - build/
+    - docker build -t $IMAGE .
+    - docker push $IMAGE
 
 deploy-production:
   stage: deploy
-  image: ghcr.io/railwayapp/cli:latest
-  variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN_PROD
+  image: alpine/curl:latest
   script:
-    - railway up --service=$SVC_ID --environment=production
+    - |
+      curl -sf -X POST https://backboard.railway.app/graphql/v2 \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $RAILWAY_TOKEN_PROD" \
+        -d "{\"query\": \"mutation { serviceInstanceRedeploy(environmentId: \\\"$RAILWAY_ENV_ID_PROD\\\", serviceId: \\\"$SVC_ID\\\") }\"}"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
 deploy-staging:
   stage: deploy
-  image: ghcr.io/railwayapp/cli:latest
-  variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN_STAGING
+  image: alpine/curl:latest
   script:
-    - railway up --service=$SVC_ID --environment=staging
+    - |
+      curl -sf -X POST https://backboard.railway.app/graphql/v2 \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $RAILWAY_TOKEN_STAGING" \
+        -d "{\"query\": \"mutation { serviceInstanceRedeploy(environmentId: \\\"$RAILWAY_ENV_ID_STAGING\\\", serviceId: \\\"$SVC_ID\\\") }\"}"
   rules:
     - if: $CI_COMMIT_BRANCH == "staging"
