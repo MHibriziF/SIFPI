@@ -8,16 +8,13 @@ stages:
 
 build:
   stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
-  variables:
-    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   script:
-    - docker build -t $IMAGE .
-    - docker push $IMAGE
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_JOB_TOKEN" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
 
 deploy-production:
   stage: deploy
