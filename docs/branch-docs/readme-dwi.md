@@ -1502,10 +1502,722 @@ Body (raw JSON):
 
 ---
 
+# PM-6: READ SINGLE PROJECT DETAIL (ADMIN)
+
+## Endpoint
+
+```
+GET /api/admin/projects/{id}
+```
+
+## Authentication
+
+- **Role Required:** `ADMIN`
+- **Token:** JWT Cookie (`SIFPI_TOKEN`)
+
+## Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | Long | ✅ Yes | Project ID |
+
+## Success Response (200 OK)
+
+```json
+{
+  "status": 200,
+  "message": "Detail proyek berhasil diambil.",
+  "data": {
+    "id": 1,
+    "name": "Pejagan-Cilacap Toll Road: Solicited PPP",
+    "description": "Pembangunan jalan tol...",
+    "sector": "TRANSPORTASI",
+    "status": "IN_REVIEW",
+    "createdAt": "2026-02-15T09:00:00.000+07:00",
+    "updatedAt": "2026-03-07T14:30:00.000+07:00",
+    "location": "Central Java Province",
+    "locationImageUrl": "https://storage.ipfo.id/projects/location-image.jpg",
+    "valueProposition": "Mengurangi waktu perjalanan dari 4 jam menjadi 2 jam...",
+    "cooperationModel": "Design-Build-Operate-Transfer (DBOT)",
+    "concessionPeriod": 50,
+    "assetReadiness": "Land acquisition 80% complete",
+    "projectStructureImageUrl": "https://storage.ipfo.id/projects/structure-image.jpg",
+    "governmentSupport": "Government commitment for land acquisition...",
+    "totalCapex": 1620000000.00,
+    "totalOpex": 45000000.00,
+    "npv": 450000000.00,
+    "irr": 8.50,
+    "revenueStream": "Toll collection, service area revenue",
+    "projectFileDownloadUrl": "https://storage.ipfo.id/projects/project-file.pdf",
+    "isFeasibilityStudy": true,
+    "additionalInfo": "Project is in advanced stage...",
+    "ownerId": "550e8400-e29b-41d4-a716-446655440000",
+    "ownerName": "Mrs. Ira Ariani C.",
+    "ownerOrganization": "Ministry of Public Works and Housing",
+    "ownerEmail": "ira.ariani@pu.go.id",
+    "ownerPhone": "+6281316999137",
+    "contactPersonName": "Mrs. Ira Ariani C.",
+    "contactPersonEmail": "ira.ariani@pu.go.id",
+    "contactPersonPhone": "+6281316999137",
+    "ownerInstitution": "Ministry of Public Works and Housing",
+    "isSubmitted": true,
+    "timelines": [
+      {
+        "id": 1,
+        "timeRange": "2025 - 2026",
+        "phaseDescription": "FRC & RC and licensing Process"
+      }
+    ],
+    "statusHistory": [
+      {
+        "id": 1,
+        "status": "IN_REVIEW",
+        "changedBy": "550e8400-e29b-41d4-a716-446655440000",
+        "changedByName": "Mrs. Ira Ariani C.",
+        "notes": "Project submitted for review",
+        "changedAt": "2026-03-05T11:20:00.000+07:00"
+      }
+    ],
+    "verifications": [
+      {
+        "id": 1,
+        "action": "REJECTED",
+        "notes": "Mohon perbaiki data finansial lebih detail",
+        "verifiedBy": "admin-uuid-here",
+        "verifiedByName": "Admin Name",
+        "verifiedAt": "2026-03-06T14:30:00.000+07:00"
+      }
+    ]
+  }
+}
+```
+
+## Response Fields
+
+### Status History (Array)
+Status transitions tracking - records ketika project status berubah
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | Long | Status history record ID |
+| `status` | String | Status yang dicapai (IN_REVIEW, TERVERIFIKASI, etc) |
+| `changedBy` | UUID | ID siapa yang ubah status (Owner/Admin) |
+| `changedByName` | String | Nama person yang ubah status |
+| `notes` | String | Alasan/catatan perubahan status |
+| `changedAt` | LocalDateTime | Timestamp perubahan status |
+
+### Verifications (Array)
+Admin verification records - tracks admin approve/reject actions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | Long | Verification record ID |
+| `action` | String | VERIFIED (approve) atau REJECTED (reject + request revision) |
+| `notes` | String | Catatan dari admin |
+| `verifiedBy` | UUID | Admin ID yang melakukan verifikasi |
+| `verifiedByName` | String | Nama admin yang melakukan verifikasi |
+| `verifiedAt` | LocalDateTime | Timestamp verifikasi |
+
+## Error Responses
+
+### 404 Not Found
+
+```json
+{
+  "status": 404,
+  "message": "Proyek dengan ID 999 tidak ditemukan",
+  "data": null
+}
+```
+
+### 403 Forbidden (Not Admin)
+
+```json
+{
+  "status": 403,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "status": 401,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+## Business Logic
+
+1. Verify JWT token and user is logged in
+2. Check user has ADMIN role (return 403 if not)
+3. Fetch project by ID (return 404 if not found)
+4. Fetch owner information by ownerId from User repository
+5. Resolve file URLs (location image, project structure image, project file) using StorageService
+6. Map timelines to ProjectTimelineResponseDTO
+7. Map status histories to ProjectStatusHistoryDTO (tracks status transitions)
+8. Map verifications to ProjectVerificationDTO (tracks admin approval/rejection)
+9. Return complete project detail with all nested objects
+
+## Implementation Files
+
+**Created:**
+- `AdminProjectDetailDTO.java` - Complete project detail DTO with all fields
+- `ProjectStatusHistoryDTO.java` - Status transition history DTO
+- `ProjectVerificationDTO.java` - Admin verification records DTO
+- `ProjectStatusHistory.java` - Entity for tracking status transitions
+- `ProjectVerification.java` - Entity for tracking admin verifications
+- `ProjectStatusHistoryRepository.java` - Repository for status histories
+- `ProjectVerificationRepository.java` - Repository for verifications
+
+**Modified:**
+- `AdminProjectService.java` - Added `getProjectDetail(Long projectId)` method
+- `AdminProjectServiceImpl.java` - Implemented detail retrieval with status history and verification mapping
+- `AdminProjectController.java` - Added `GET /{id}` endpoint
+- `ProjectMapper.java` - Added mapping methods
+- `Project.java` - Added relationships to ProjectStatusHistory and ProjectVerification entities
+
+---
+
+# PM-7: UPDATE PROJECT STATUS (ADMIN)
+
+## Endpoints
+
+### 1. Approve Project
+
+```
+PATCH /api/admin/projects/:id/approve
+```
+
+### 2. Reject Project
+
+```
+PATCH /api/admin/projects/:id/reject
+```
+
+### 3. Bulk Publish
+
+```
+PATCH /api/admin/projects/bulk-publish
+```
+
+### 4. Bulk Unpublish
+
+```
+PATCH /api/admin/projects/bulk-unpublish
+```
+
+## Authentication
+
+- **Role Required:** `ADMIN`
+- **Token:** JWT Cookie (`SIFPI_TOKEN`)
+
+## Endpoint Details
+
+### 1. APPROVE PROJECT (Single Update)
+
+**Endpoint:** `PATCH /api/admin/projects/{id}/approve`
+
+**Request:**
+- No body required
+- Admin ID auto-extracted from JWT token
+
+**Validasi:**
+- Hanya project dengan status `IN_REVIEW` yang bisa di-approve
+- Return 400 jika status tidak sesuai
+
+**Business Logic:**
+1. Fetch project by ID (404 if not found)
+2. Validate status is IN_REVIEW (400 if not)
+3. Update status to VERIFIED (TERVERIFIKASI)
+4. Create ProjectVerification record (action: VERIFIED)
+5. Return updated project
+
+**Example Response - Success (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "Proyek berhasil disetujui.",
+  "data": {
+    "id": 1,
+    "name": "Irigasi Sumur Dalam Provinsi Jawa Barat",
+    "status": "TERVERIFIKASI",
+    "statusInEnglish": "VERIFIED",
+    "sector": "WATER_RESOURCES",
+    "location": "Jawa Barat",
+    "description": "Proyek irigasi menggunakan teknologi sumur dalam...",
+    "createdAt": "2026-03-01T10:00:00Z",
+    "updatedAt": "2026-03-08T14:30:00Z"
+  }
+}
+```
+
+**Example Response - Project Not Found (404):**
+```json
+{
+  "status": 404,
+  "message": "Proyek dengan ID 999 tidak ditemukan",
+  "data": null
+}
+```
+
+**Example Response - Invalid Status (400):**
+```json
+{
+  "status": 400,
+  "message": "Hanya proyek dengan status 'In Review' yang bisa di-approve",
+  "data": null
+}
+```
+
+**Example Response - Unauthorized (401):**
+```json
+{
+  "status": 401,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+**Example Response - Forbidden (403):**
+```json
+{
+  "status": 403,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+---
+
+### 2. REJECT PROJECT (Single Update)
+
+**Endpoint:** `PATCH /api/admin/projects/{id}/reject`
+
+**Request Body:**
+```json
+{
+  "notes": "Data finansial tidak lengkap dan membutuhkan perbaikan lebih detail. Mohon submit kembali dengan dokumen pendukung yang lengkap."
+}
+```
+
+**Request Field Specification:**
+
+| Field | Type | Required | Validasi |
+|-------|------|----------|----------|
+| `notes` | String | ✅ Yes | Min 10 karakter, max 500 karakter |
+
+**Business Logic:**
+1. Fetch project by ID (404 if not found)
+2. Validate status is IN_REVIEW (400 if not)
+3. Validate notes min 10 chars (400 if not)
+4. Update status back to DRAFT
+5. Create ProjectVerification record (action: REJECTED, notes: admin notes)
+6. Return updated project
+
+**Example Response - Success (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "Proyek berhasil ditolak.",
+  "data": {
+    "id": 1,
+    "name": "Irigasi Sumur Dalam Provinsi Jawa Barat",
+    "status": "DRAFT",
+    "statusInEnglish": "DRAFT",
+    "sector": "WATER_RESOURCES",
+    "location": "Jawa Barat",
+    "description": "Proyek irigasi menggunakan teknologi sumur dalam...",
+    "createdAt": "2026-03-01T10:00:00Z",
+    "updatedAt": "2026-03-08T14:45:00Z"
+  }
+}
+```
+
+**Example Request Body - Invalid (Notes Too Short):**
+```json
+{
+  "notes": "Tidak ok"
+}
+```
+
+**Example Response - Notes Too Short (400):**
+```json
+{
+  "status": 400,
+  "message": "Notes minimal 10 karakter",
+  "data": null
+}
+```
+
+**Example Response - Missing Notes (400):**
+```json
+{
+  "status": 400,
+  "message": "Notes wajib diisi",
+  "data": null
+}
+```
+
+**Example Response - Invalid Status (400):**
+```json
+{
+  "status": 400,
+  "message": "Hanya proyek dengan status 'In Review' yang bisa di-reject",
+  "data": null
+}
+```
+
+**Example Response - Project Not Found (404):**
+```json
+{
+  "status": 404,
+  "message": "Proyek dengan ID 999 tidak ditemukan",
+  "data": null
+}
+```
+
+**Example Response - Unauthorized (401):**
+```json
+{
+  "status": 401,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+**Example Response - Forbidden (403):**
+```json
+{
+  "status": 403,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+---
+
+### 3. BULK PUBLISH
+
+**Endpoint:** `PATCH /api/admin/projects/bulk-publish`
+
+**Request Body:**
+```json
+{
+  "projectIds": [1, 3, 5]
+}
+```
+
+**Request Field Specification:**
+
+| Field | Type | Required | Validasi |
+|-------|------|----------|----------|
+| `projectIds` | Array<Long> | ✅ Yes | Min 1 item, tidak boleh kosong |
+
+**Business Logic:**
+1. Iterate through projectIds
+2. For each project:
+   - Fetch project by ID (skip if not found)
+   - Validate status is APPROVED/TERVERIFIKASI (skip if not)
+   - Update status to PUBLISHED (TERPUBLIKASI)
+   - Create ProjectVerification record (action: PUBLISHED)
+3. Return count of successfully published projects
+
+**Example Request Body - Valid:**
+```json
+{
+  "projectIds": [1, 3, 5]
+}
+```
+
+**Example Response - All Success (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "3 proyek berhasil dipublikasikan.",
+  "data": 3
+}
+```
+
+**Example Request Body - Partial (Some Already Published):**
+```json
+{
+  "projectIds": [1, 2, 3]
+}
+```
+
+**Example Response - Partial Success (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "2 proyek berhasil dipublikasikan.",
+  "data": 2
+}
+```
+**Note:** Project dengan ID 2 skipped karena status bukan APPROVED, atau project tidak ditemukan.
+
+**Example Request Body - Invalid (Empty):**
+```json
+{
+  "projectIds": []
+}
+```
+
+**Example Response - Empty List (400):**
+```json
+{
+  "status": 400,
+  "message": "Project IDs tidak boleh kosong",
+  "data": null
+}
+```
+
+**Example Request Body - Invalid (Missing Field):**
+```json
+{
+}
+```
+
+**Example Response - Missing Field (400):**
+```json
+{
+  "status": 400,
+  "message": "projectIds wajib diisi",
+  "data": null
+}
+```
+
+**Example Response - Unauthorized (401):**
+```json
+{
+  "status": 401,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+**Example Response - Forbidden (403):**
+```json
+{
+  "status": 403,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+---
+
+### 4. BULK UNPUBLISH
+
+**Endpoint:** `PATCH /api/admin/projects/bulk-unpublish`
+
+**Request Body:**
+```json
+{
+  "projectIds": [1, 3, 5]
+}
+```
+
+**Request Field Specification:**
+
+| Field | Type | Required | Validasi |
+|-------|------|----------|----------|
+| `projectIds` | Array<Long> | ✅ Yes | Min 1 item, tidak boleh kosong |
+
+**Business Logic:**
+1. Iterate through projectIds
+2. For each project:
+   - Fetch project by ID (skip if not found)
+   - Validate status is PUBLISHED/TERPUBLIKASI (skip if not)
+   - Update status back to APPROVED (TERVERIFIKASI)
+   - Create ProjectVerification record (action: UNPUBLISHED)
+3. Return count of successfully unpublished projects
+
+**Example Request Body - Valid:**
+```json
+{
+  "projectIds": [1, 3, 5]
+}
+```
+
+**Example Response - All Success (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "3 proyek berhasil di-unpublish.",
+  "data": 3
+}
+```
+
+**Example Request Body - Partial (Some Already Approved):**
+```json
+{
+  "projectIds": [1, 2, 3]
+}
+```
+
+**Example Response - Partial Success (200 OK):**
+```json
+{
+  "status": 200,
+  "message": "2 proyek berhasil di-unpublish.",
+  "data": 2
+}
+```
+**Note:** Project dengan ID 2 skipped karena status bukan PUBLISHED, atau project tidak ditemukan.
+
+**Example Request Body - Invalid (Empty):**
+```json
+{
+  "projectIds": []
+}
+```
+
+**Example Response - Empty List (400):**
+```json
+{
+  "status": 400,
+  "message": "Project IDs tidak boleh kosong",
+  "data": null
+}
+```
+
+**Example Request Body - Invalid (Missing Field):**
+```json
+{
+}
+```
+
+**Example Response - Missing Field (400):**
+```json
+{
+  "status": 400,
+  "message": "projectIds wajib diisi",
+  "data": null
+}
+```
+
+**Example Response - Unauthorized (401):**
+```json
+{
+  "status": 401,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+**Example Response - Forbidden (403):**
+```json
+{
+  "status": 403,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+---
+
+## General Notes
+
+1. **Admin User Tracking**: Setiap aksi (approve, reject, publish, unpublish) dicatat dengan `verifiedBy` (admin UUID) dan `verifiedByName` (admin name)
+2. **Status Transitions**: 
+   - Approve: IN_REVIEW → TERVERIFIKASI
+   - Reject: IN_REVIEW → DRAFT
+   - Publish: TERVERIFIKASI → TERPUBLIKASI
+   - Unpublish: TERPUBLIKASI → TERVERIFIKASI
+3. **Bulk Operations**: Project yang tidak memenuhi kriteria diskip tanpa error; operation return count berapa berhasil
+4. **Audit Trail**: Semua actions disimpan ke `project_verifications` table dengan timestamp
+5. **Request Field Name**: Reject endpoint menggunakan field `notes` (bukan `rejectionReason`)
+
+---
+
+## Error Responses
+
+### 400 Bad Request (Invalid Status or Validation)
+
+```json
+{
+  "status": 400,
+  "message": "Hanya proyek dengan status 'In Review' yang bisa di-approve",
+  "data": null
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "status": 404,
+  "message": "Proyek dengan ID 999 tidak ditemukan",
+  "data": null
+}
+```
+
+### 403 Forbidden (Not Admin)
+
+```json
+{
+  "status": 403,
+  "message": "Access Denied",
+  "data": null
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "status": 401,
+  "message": "Unauthorized",
+  "data": null
+}
+```
+
+## Data Persistence
+
+Setiap aksi verifikasi dicatat ke tabel `project_verifications`:
+
+| Field | Type | Deskripsi |
+|-------|------|-----------|
+| `id` | Long | Primary key |
+| `project_id` | Long | Reference to project |
+| `action` | String | VERIFIED, REJECTED, PUBLISHED, UNPUBLISHED |
+| `notes` | Text | Admin notes (untuk reject, catatan penolakan) |
+| `verified_by` | UUID | Admin ID |
+| `verified_by_name` | String | Admin name |
+| `verified_at` | Timestamp | Kapan aksi dilakukan |
+
+## Implementation Files
+
+**Created:**
+- `RejectProjectRequest.java` - DTO untuk reject request dengan field `notes`
+- `BulkPublishRequest.java` - DTO untuk bulk publish dan unpublish (consolidated)
+- `ProjectStatusHistory.java` - Entity untuk track status transitions dengan database index
+- `ProjectVerification.java` - Entity untuk track admin actions dengan database index
+
+**Modified:**
+- `AdminProjectService.java` - Added PM-6 & PM-7 method signatures
+- `AdminProjectServiceImpl.java` - Implemented all PM-6 & PM-7 methods with validation and verification recording
+- `AdminProjectController.java` - Added PM-6 & PM-7 endpoints with authentication
+- `Project.java` - Added relationships to ProjectStatusHistory dan ProjectVerification entities
+
+**Deleted:**
+- `BulkUnpublishRequest.java` - Consolidated into BulkPublishRequest (code duplication removed)
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 7.2 | 2026-03-09 | **MAINTAINER REVISIONS APPLIED:** (1) Merged BulkPublishRequest & BulkUnpublishRequest into single class - deleted duplicate BulkUnpublishRequest.java, (2) Added @Index(name = "idx_psh_project_changedat", columnList = "project_id, changed_at") to ProjectStatusHistory for query optimization, (3) Added @Index(name = "idx_pv_project_verifiedat", columnList = "project_id, verified_at") to ProjectVerification for query optimization |
+| 7.1 | 2026-03-08 | Updated PM-7: Changed `rejectionReason` to `notes` for consistency with ProjectVerification entity. Added comprehensive examples for all conditions (success, partial success, validation errors, auth errors) for all 4 endpoints. |
+| 7.0 | 2026-03-08 | Added Section PM-7: UPDATE PROJECT STATUS (ADMIN) - 4 endpoints (approve, reject, bulk-publish, bulk-unpublish) with ProjectVerification recording for all admin actions |
+| 6.1 | 2026-03-08 | Updated PM-6: Added ProjectStatusHistory (status transitions) and ProjectVerification (admin actions) entities with proper mapping in response. Response now includes statusHistory array (tracks status changes) and verifications array (tracks admin approve/reject actions) |
+| 6.0 | 2026-03-08 | Added Section PM-6: READ SINGLE PROJECT DETAIL (ADMIN) - `GET /api/admin/projects/{id}` with full project information, owner data, timelines, status history, and verification records |
 | 5.0 | 2026-03-07 | Added Section 11: DELETE USER (SOFT DELETE) - DEACTIVATE ACCOUNT (UM-11) - Admin endpoint `PATCH /api/admin/users/{email}/status` for all user roles with isActive toggle, audit trail (changedBy, changedAt, action) |
 | 4.0 | 2026-03-07 | Added Section 10: UPDATE USER CONTACT VERIFICATION STATUS (UM-10) - Admin verification endpoint `PATCH /api/admin/users/{email}/verify` for Project Owners with isVerified field, verifiedBy audit trail, email notifications |
 | 3.0 | 2026-03-05 | Added Section 3: EMAIL VERIFICATION FLOW (25-min expiry, token expired = re-register, success modal on /login) |

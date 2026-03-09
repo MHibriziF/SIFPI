@@ -12,6 +12,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.EditProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.AdminProjectDetailDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.ProjectTimelineRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
@@ -115,4 +116,9 @@ public interface ProjectMapper {
     default String fromStatus(ProjectStatus status) {
         return status == null ? null : status.name();
     }
+
+    @Mapping(target = "locationImageUrl", ignore = true)
+    @Mapping(target = "projectStructureImageUrl", ignore = true)
+    @Mapping(target = "projectFileDownloadUrl", ignore = true)
+    AdminProjectDetailDTO toAdminDetailDTO(Project project);
 }
