@@ -31,6 +31,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.dto.BulkInsertProjectRowErrorDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.BulkInsertProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.CreateProjectRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.ProjectTimelineRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.mapper.ProjectMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.ProjectBatch;
@@ -115,6 +116,7 @@ public class CreateProjectServiceImpl implements CreateProjectService {
             validateFinancialFields(validationErrors, row, request);
             validateConcessionPeriod(validationErrors, row, request);
             validateFileUrls(validationErrors, row, request);
+            validateTimelines(validationErrors, row, request);
 
             String ownerEmail = normalizeEmail(request.getOwnerEmail());
             if (!StringUtils.hasText(ownerEmail)) {
@@ -329,6 +331,31 @@ public class CreateProjectServiceImpl implements CreateProjectService {
         }
     }
 
+    private void validateTimelines(Map<Integer, LinkedHashSet<String>> errors, int row,
+            BulkInsertProjectRequest request) {
+        List<ProjectTimelineRequest> timelines = request.getTimelines();
+        if (timelines == null || timelines.isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < timelines.size(); i++) {
+            var timeline = timelines.get(i);
+            String prefix = "Timeline ke-" + (i + 1) + ": ";
+            if (timeline == null) {
+                addError(errors, row, prefix + "data tidak boleh null.");
+                continue;
+            }
+            if (!StringUtils.hasText(normalize(timeline.getTimeRange()))) {
+                addError(errors, row, prefix + "rentang waktu wajib diisi.");
+            }
+            if (!StringUtils.hasText(normalize(timeline.getPhaseDescription()))) {
+                addError(errors, row, prefix + "deskripsi fase wajib diisi.");
+            } else if (timeline.getPhaseDescription().trim().length() > 200) {
+                addError(errors, row, prefix + "deskripsi fase maksimal 200 karakter.");
+            }
+        }
+    }
+
     private boolean isValidUrl(String url) {
         try {
             URI uri = URI.create(url);
@@ -372,7 +399,7 @@ public class CreateProjectServiceImpl implements CreateProjectService {
 
     private Project buildProjectFromRequest(BulkInsertProjectRequest request, UUID ownerId,
             String locationImageKey, String projectStructureImageKey, String projectFileKey) {
-        return Project.builder()
+        Project project = Project.builder()
                 .ownerId(ownerId)
                 .name(normalize(request.getName()))
                 .description(normalize(request.getDescription()))
@@ -400,6 +427,22 @@ public class CreateProjectServiceImpl implements CreateProjectService {
                 .additionalInfo(normalize(request.getAdditionalInfo()))
                 .isSubmitted(false)
                 .build();
+
+        if (request.getTimelines() != null && !request.getTimelines().isEmpty()) {
+            List<ProjectTimeline> timelines = request.getTimelines().stream()
+                    .filter(t -> t != null
+                            && StringUtils.hasText(t.getTimeRange())
+                            && StringUtils.hasText(t.getPhaseDescription()))
+                    .map(t -> ProjectTimeline.builder()
+                            .timeRange(t.getTimeRange().trim())
+                            .phaseDescription(t.getPhaseDescription().trim())
+                            .project(project)
+                            .build())
+                    .collect(Collectors.toList());
+            project.setTimelines(timelines);
+        }
+
+        return project;
     }
 
     private void attachProjectToTimelines(Project project) {
