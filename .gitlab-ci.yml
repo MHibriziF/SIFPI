@@ -43,7 +43,7 @@ deploy-production:
   variables:
     RAILWAY_TOKEN: $RAILWAY_TOKEN_PROD
   script:
-    - railway redeploy --service=$SVC_ID --environment=production -y
+    - railway redeploy --service=$SVC_ID -y
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
@@ -53,6 +53,6 @@ deploy-staging:
   variables:
     RAILWAY_TOKEN: $RAILWAY_TOKEN_STAGING
   script:
-    - railway redeploy --service=$SVC_ID --environment=staging -y
+    - railway redeploy --service=$SVC_ID -y
   rules:
     - if: $CI_COMMIT_BRANCH == "staging"

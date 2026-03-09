@@ -66,21 +66,21 @@ jobs:
   deploy-production:
     needs: docker-build-production
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
     steps:
       - name: Deploy to Railway (production)
-        run: |
-          curl -sf -X POST https://backboard.railway.app/graphql/v2 \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN_PROD }}" \
-            -d "{\"query\": \"mutation { serviceInstanceRedeploy(environmentId: \\\"${{ secrets.RAILWAY_ENV_ID_PROD }}\\\", serviceId: \\\"${{ secrets.SVC_ID }}\\\") }\"}"
+        run: railway redeploy --service=${{ secrets.SVC_ID }} -y
 
   deploy-staging:
     needs: docker-build-staging
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
     steps:
       - name: Deploy to Railway (staging)
-        run: |
-          curl -sf -X POST https://backboard.railway.app/graphql/v2 \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN_STAGING }}" \
-            -d "{\"query\": \"mutation { serviceInstanceRedeploy(environmentId: \\\"${{ secrets.RAILWAY_ENV_ID_STAGING }}\\\", serviceId: \\\"${{ secrets.SVC_ID }}\\\") }\"}"
+        run: railway redeploy --service=${{ secrets.SVC_ID }} -y
