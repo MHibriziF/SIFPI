@@ -39,24 +39,20 @@ docker-build-staging:
 
 deploy-production:
   stage: deploy
-  image: alpine/curl:latest
+  image: ghcr.io/railwayapp/cli:latest
+  variables:
+    RAILWAY_TOKEN: $RAILWAY_TOKEN_PROD
   script:
-    - |
-      curl -sf -X POST https://backboard.railway.app/graphql/v2 \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $RAILWAY_TOKEN_PROD" \
-        -d "{\"query\": \"mutation { serviceInstanceRedeploy(environmentId: \\\"$RAILWAY_ENV_ID_PROD\\\", serviceId: \\\"$SVC_ID\\\") }\"}"
+    - railway redeploy --service=$SVC_ID --environment=production -y
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
 deploy-staging:
   stage: deploy
-  image: alpine/curl:latest
+  image: ghcr.io/railwayapp/cli:latest
+  variables:
+    RAILWAY_TOKEN: $RAILWAY_TOKEN_STAGING
   script:
-    - |
-      curl -sf -X POST https://backboard.railway.app/graphql/v2 \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $RAILWAY_TOKEN_STAGING" \
-        -d "{\"query\": \"mutation { serviceInstanceRedeploy(environmentId: \\\"$RAILWAY_ENV_ID_STAGING\\\", serviceId: \\\"$SVC_ID\\\") }\"}"
+    - railway redeploy --service=$SVC_ID --environment=staging -y
   rules:
     - if: $CI_COMMIT_BRANCH == "staging"
