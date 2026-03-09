@@ -37,6 +37,119 @@ Spesifikasi lengkap dengan request/response examples untuk fitur registrasi Proj
    - ✅ New `ProjectOwnerRepository` for PO-specific queries
    - ✅ `findByUserEmail(String email)` method for finding PO by user email
 
+6. **Organization Management (UM-4 & UM-5 Enhancement):**
+   - ✅ Created `Organization` entity untuk standardized organization names
+   - ✅ Organization autocomplete feature di registration form
+   - ✅ User bisa add new organization jika tidak ada di database
+   - ✅ Organization otomatis di-create saat registrasi jika belum ada
+   - ✅ API endpoints untuk get/search/create organizations
+
+---
+
+## 0. ORGANIZATION MANAGEMENT
+
+Untuk mencegah duplikasi nama organisasi/instansi, sistem menyediakan fitur organization management dengan autocomplete.
+
+### Endpoint: Get All Organizations
+
+```
+GET /api/auth/organizations
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": 200,
+  "message": "Daftar organisasi berhasil diambil.",
+  "timestamp": "2026-03-09T10:30:45.123456Z",
+  "data": [
+    {
+      "id": 1,
+      "name": "PT Infrastruktur Indonesia"
+    },
+    {
+      "id": 2,
+      "name": "PT Jalan Tol Nusantara"
+    },
+    {
+      "id": 3,
+      "name": "Kementerian PUPR"
+    }
+  ]
+}
+```
+
+### Endpoint: Search Organizations (Autocomplete)
+
+```
+GET /api/auth/organizations/search?q=PT%20Infra
+```
+
+**Query Parameters:**
+
+| Parameter | Tipe | Required | Deskripsi |
+|-----------|------|----------|-----------|
+| `q` | String | No | Search term untuk mencari organisasi |
+
+**Response (200 OK):**
+
+```json
+{
+  "status": 200,
+  "message": "Pencarian organisasi berhasil.",
+  "timestamp": "2026-03-09T10:30:45.123456Z",
+  "data": [
+    {
+      "id": 1,
+      "name": "PT Infrastruktur Indonesia"
+    }
+  ]
+}
+```
+
+### Endpoint: Get or Create Organization
+
+```
+POST /api/auth/organizations/get-or-create
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "PT Jembatan Kita"
+}
+```
+
+**Response (200 OK) - Jika sudah ada:**
+
+```json
+{
+  "status": 200,
+  "message": "Organisasi berhasil diambil atau dibuat.",
+  "timestamp": "2026-03-09T10:30:45.123456Z",
+  "data": {
+    "id": 1,
+    "name": "PT Jembatan Kita"
+  }
+}
+```
+
+**Response (200 OK) - Jika baru dibuat:**
+
+```json
+{
+  "status": 200,
+  "message": "Organisasi berhasil diambil atau dibuat.",
+  "timestamp": "2026-03-09T10:30:45.123456Z",
+  "data": {
+    "id": 4,
+    "name": "PT Jembatan Kita"
+  }
+}
+```
+
 ---
 
 ## 1. REGISTER PROJECT OWNER
@@ -167,16 +280,24 @@ POST /api/auth/register/owner
 1. Validasi semua field required
 2. Cek email tidak duplikat → jika duplikat throw `ConflictException` (409)
 3. Cek password dan confirmPassword match → jika tidak match throw `BadRequestException` (400)
-4. Get role `PROJECT_OWNER` dari database
-5. Hash password menggunakan `BCryptPasswordEncoder`
-6. Create User entity dengan:
+4. **Get or Create Organization:**
+   - Cek apakah organisasi dengan nama tersebut sudah ada di database
+   - Jika ada, gunakan organization yang sudah ada
+   - Jika belum ada, otomatis create organization baru dengan nama dari request
+5. Get role `PROJECT_OWNER` dari database
+6. Hash password menggunakan `BCryptPasswordEncoder`
+7. Create User entity dengan:
    - `role` = PROJECT_OWNER
    - `isActive` = true
    - `isVerified` = false (pending admin verification)
    - `password` = hashed password
+   - `organization` = nama organisasi dari step #4
    - Field lainnya sesuai request
-7. Save user ke database
-8. Return UserDTO dengan 201 Created
+8. Create ProjectOwnerProfile entity
+9. Save user ke database
+10. Generate email verification token
+11. Publish event untuk send verification email
+12. Return OwnerDTO dengan 201 Created
 
 ---
 
@@ -441,25 +562,31 @@ Gunakan **value** dalam request:
 5. Cek `sectorInterest` minimal 3 items → jika < 3 throw `IllegalArgumentException` (400)
 6. Validasi setiap nilai dalam `sectorInterest` adalah value yang valid dari enum `Sector` → jika ada yang invalid throw `IllegalArgumentException` (400)
 7. Cek `agreePrivacy` = true → jika false throw `IllegalArgumentException` (400)
-8. Get role `INVESTOR` dari database
-9. Hash password menggunakan `BCryptPasswordEncoder`
-10. Convert `sectorInterest` list to comma-separated string untuk storage di `investor_profiles.sector_interest`
-11. Create dan save User entity dengan:
+8. **Get or Create Organization:**
+   - Cek apakah organisasi dengan nama tersebut sudah ada di database
+   - Jika ada, gunakan organization yang sudah ada
+   - Jika belum ada, otomatis create organization baru dengan nama dari request
+9. Get role `INVESTOR` dari database
+10. Hash password menggunakan `BCryptPasswordEncoder`
+11. Convert `sectorInterest` list to comma-separated string untuk storage di `investor_profiles.sector_interest`
+12. Create User entity dengan:
     - `role` = INVESTOR
     - `isActive` = true
     - `isVerified` = false (pending admin verification)
     - `password` = hashed password
+    - `organization` = nama organisasi dari step #8
     - Field lainnya sesuai request
-12. Create dan save InvestorProfile entity dengan:
+13. Create dan save InvestorProfile entity dengan:
     - `budgetRange` = `budgetInvestasi` value
     - `sectorInterest` = comma-separated string
     - `optInEmail` = subscription preference
     - `agreePrivacy` = true
-13. Set bidirectional relationship (User ↔ InvestorProfile)
-14. Reload User dari database untuk memastikan InvestorProfile ter-load
-15. Load email template `investor-registration.html` dan kirim email async (non-blocking)
-16. Map User + InvestorProfile ke InvestorDTO
-17. Return dengan HTTP 201 Created
+14. Set bidirectional relationship (User ↔ InvestorProfile)
+15. Reload User dari database untuk memastikan InvestorProfile ter-load
+16. Load email template `investor-registration.html` dan kirim email async (non-blocking)
+17. Generate email verification token
+18. Map User + InvestorProfile ke InvestorDTO
+19. Return dengan HTTP 201 Created
 
 ---
 
