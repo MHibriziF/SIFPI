@@ -136,15 +136,17 @@ public class AdminProjectServiceImpl implements AdminProjectService {
             detailDTO.setOwnerOrganization(owner.getOrganization());
         }
 
-        // Set image URLs from storage service
+        // Set image URLs — use the backend proxy endpoint so files are served
+        // through the authenticated backend rather than directly from storage
+        // (avoids CORS / SSL issues with raw storage URLs).
         if (project.getLocationImageKey() != null && !project.getLocationImageKey().isBlank()) {
-            detailDTO.setLocationImageUrl(storageService.getPublicUrl(project.getLocationImageKey()));
+            detailDTO.setLocationImageUrl("/api/admin/projects/" + projectId + "/files/map");
         }
         if (project.getProjectStructureImageKey() != null && !project.getProjectStructureImageKey().isBlank()) {
-            detailDTO.setProjectStructureImageUrl(storageService.getPublicUrl(project.getProjectStructureImageKey()));
+            detailDTO.setProjectStructureImageUrl("/api/admin/projects/" + projectId + "/files/structure");
         }
         if (project.getProjectFileKey() != null && !project.getProjectFileKey().isBlank()) {
-            detailDTO.setProjectFileDownloadUrl(storageService.getPublicUrl(project.getProjectFileKey()));
+            detailDTO.setProjectFileDownloadUrl("/api/admin/projects/" + projectId + "/files/document");
         }
 
         // Map timelines (using manual mapping since list mapping is straightforward)

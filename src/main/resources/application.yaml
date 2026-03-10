@@ -36,6 +36,7 @@ management:
 
 storage:
   endpoint: ${STORAGE_ENDPOINT:}
+  public-url: ${STORAGE_PUBLIC_URL:}
   access-key: ${STORAGE_ACCESS_KEY:}
   secret-key: ${STORAGE_SECRET_KEY:}
   bucket-name: ${STORAGE_BUCKET_NAME:}

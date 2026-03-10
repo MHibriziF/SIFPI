@@ -5,6 +5,8 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
+import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
+import id.go.kemenkoinfra.ipfo.sifpi.common.services.StorageService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.AdminProjectDetailDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.AdminProjectListItemDTO;
@@ -13,6 +15,8 @@ import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.BulkInsertProjectRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.BulkPublishRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.request.RejectProjectRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
+import id.go.kemenkoinfra.ipfo.sifpi.project.repository.ProjectRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.AdminProjectService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.CreateProjectService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,6 +48,8 @@ public class AdminProjectController {
     private final CreateProjectService createProjectService;
     private final ResponseUtil responseUtil;
     private final UserRepository userRepository;
+    private final StorageService storageService;
+    private final ProjectRepository projectRepository;
 
     /**
      * PM-9: Get all projects in the system with filters
@@ -188,5 +195,46 @@ public class AdminProjectController {
 
         BulkInsertProjectResultDTO result = createProjectService.bulkInsertProjects(requests);
         return responseUtil.success(result, "Bulk insert proyek selesai.", HttpStatus.CREATED);
+    }
+
+    /**
+     * File proxy: streams a project file (map, structure image, or project document)
+     * directly from storage through the backend, avoiding CORS/SSL issues with the
+     * raw storage URL.
+     *
+     * @param projectId ID of the project
+     * @param fileType  one of: map | structure | document
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}/files/{fileType}")
+    public ResponseEntity<byte[]> getProjectFile(
+            @PathVariable("id") Long projectId,
+            @PathVariable("fileType") String fileType) {
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("Proyek dengan ID " + projectId + " tidak ditemukan"));
+
+        String key = switch (fileType) {
+            case "map"       -> project.getLocationImageKey();
+            case "structure" -> project.getProjectStructureImageKey();
+            case "document"  -> project.getProjectFileKey();
+            default          -> throw new NotFoundException("Tipe file tidak valid: " + fileType);
+        };
+
+        if (key == null || key.isBlank()) {
+            throw new NotFoundException("File " + fileType + " tidak tersedia untuk proyek ini");
+        }
+
+        StorageService.FileDownload file = storageService.download(key);
+
+        String contentDisposition = fileType.equals("document")
+                ? "attachment; filename=\"project-" + projectId + "-document\""
+                : "inline";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, file.contentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                .header(HttpHeaders.CACHE_CONTROL, "max-age=3600, private")
+                .body(file.data());
     }
 }
