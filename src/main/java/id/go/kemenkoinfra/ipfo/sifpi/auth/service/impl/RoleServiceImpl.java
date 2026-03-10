@@ -23,6 +23,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.dto.request.UpdateRoleRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.mapper.RoleMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Resource;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.Role;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RoleAuditLog;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.RolePermission;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ResourceRepository;
@@ -117,6 +118,27 @@ public class RoleServiceImpl implements RoleService {
 
         List<RolePermission> permissions = buildPermissions(role, request.getPermissions());
         rolePermissionRepository.saveAll(permissions);
+
+        if (request.getUserEmails() != null && !request.getUserEmails().isEmpty()) {
+            List<String> normalizedEmails = request.getUserEmails().stream()
+                    .map(String::toLowerCase)
+                    .toList();
+            List<User> users = userRepository.findAllByEmailInIgnoreCase(normalizedEmails);
+
+            List<String> foundEmails = users.stream()
+                    .map(u -> u.getEmail().toLowerCase())
+                    .toList();
+            List<String> notFound = normalizedEmails.stream()
+                    .filter(e -> !foundEmails.contains(e))
+                    .toList();
+            if (!notFound.isEmpty()) {
+                throw new IllegalArgumentException("User tidak ditemukan: " + String.join(", ", notFound));
+            }
+
+            users.forEach(u -> u.setRole(role));
+            userRepository.saveAll(users);
+            log.info("Role '{}' ditetapkan ke {} user.", role.getName(), users.size());
+        }
 
         log.info("Role '{}' berhasil dibuat dengan {} izin.", role.getName(), permissions.size());
 

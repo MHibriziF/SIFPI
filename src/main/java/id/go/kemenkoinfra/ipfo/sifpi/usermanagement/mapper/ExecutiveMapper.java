@@ -23,6 +23,9 @@ public interface ExecutiveMapper {
     @Mapping(target = "active", ignore = true)
     @Mapping(target = "organization", ignore = true)
     @Mapping(target = "investorProfile", ignore = true)
+    @Mapping(target = "changedBy", ignore = true)
+    @Mapping(target = "changedAt", ignore = true)
+    @Mapping(target = "action", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     User toEntity(CreateExecutiveRequest request);

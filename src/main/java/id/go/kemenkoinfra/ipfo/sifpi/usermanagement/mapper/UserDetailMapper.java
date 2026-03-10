@@ -16,6 +16,7 @@ public interface UserDetailMapper {
     @Mapping(source = "emailVerified", target = "emailVerified")
     @Mapping(source = "active", target = "isActive")
     @Mapping(target = "lastLogin", ignore = true)
+    @Mapping(target = "ownerVerified", ignore = true)
     @Mapping(target = "phoneVerified", ignore = true)
     @Mapping(target = "jumlahProyek", ignore = true)
     @Mapping(target = "inquiryMasuk", ignore = true)

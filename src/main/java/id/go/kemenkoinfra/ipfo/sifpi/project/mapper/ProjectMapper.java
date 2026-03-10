@@ -30,6 +30,8 @@ public interface ProjectMapper {
     @Mapping(target = "projectStructureImageKey", ignore = true)
     @Mapping(target = "projectFileKey", ignore = true)
     @Mapping(target = "revisions", ignore = true)
+    @Mapping(target = "statusHistories", ignore = true)
+    @Mapping(target = "verifications", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "editedAt", ignore = true)
     Project toEntity(CreateProjectRequest request);
@@ -40,6 +42,8 @@ public interface ProjectMapper {
     @Mapping(target = "sector", expression = "java(request.getSector() == null ? project.getSector() : toSector(request.getSector()))")
     @Mapping(target = "status", expression = "java(request.getStatus() == null ? project.getStatus() : toStatus(request.getStatus()))")
     @Mapping(target = "revisions", ignore = true)
+    @Mapping(target = "statusHistories", ignore = true)
+    @Mapping(target = "verifications", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "editedAt", ignore = true)
     void updateEntity(EditProjectRequest request, @MappingTarget Project project);
@@ -49,6 +53,7 @@ public interface ProjectMapper {
     @Mapping(target = "locationImageUrl", ignore = true)
     @Mapping(target = "projectStructureImageUrl", ignore = true)
     @Mapping(target = "projectFileDownloadUrl", ignore = true)
+    @Mapping(target = "rejectionReason", ignore = true)
     ProjectResponseDTO toDTO(Project project);
 
     /**
@@ -117,8 +122,14 @@ public interface ProjectMapper {
         return status == null ? null : status.name();
     }
 
+    @Mapping(target = "updatedAt", source = "editedAt")
     @Mapping(target = "locationImageUrl", ignore = true)
     @Mapping(target = "projectStructureImageUrl", ignore = true)
     @Mapping(target = "projectFileDownloadUrl", ignore = true)
+    @Mapping(target = "ownerName", ignore = true)
+    @Mapping(target = "ownerOrganization", ignore = true)
+    @Mapping(target = "ownerEmail", ignore = true)
+    @Mapping(target = "ownerPhone", ignore = true)
+    @Mapping(target = "statusHistory", ignore = true)
     AdminProjectDetailDTO toAdminDetailDTO(Project project);
 }
