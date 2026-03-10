@@ -2,6 +2,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.project.service;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
 
 /**
@@ -13,6 +14,8 @@ public interface ReadProjectService {
      * Get all projects created by the authenticated owner
      * 
      * @param status Optional filter by project status
+     * @param sector Optional filter by sector
+     * @param search Optional search term (matches name or ownerInstitution)
      * @param page Page number (0-indexed)
      * @param size Number of items per page
      * @param sortBy Field to sort by (createdAt, name, etc.)
@@ -21,6 +24,8 @@ public interface ReadProjectService {
      */
     PagedResponseDTO<ProjectListItemDTO> getMyProjects(
             ProjectStatus status,
+            Sector sector,
+            String search,
             int page,
             int size,
             String sortBy,

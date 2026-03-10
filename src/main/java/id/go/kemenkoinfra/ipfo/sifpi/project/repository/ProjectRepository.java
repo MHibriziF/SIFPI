@@ -25,6 +25,24 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     Page<Project> findByOwnerIdAndStatus(UUID ownerId, ProjectStatus status, Pageable pageable);
 
+    /**
+     * PM-3: Find projects by owner with optional filters for search and sector
+     */
+    @Query("SELECT p FROM Project p WHERE " +
+            "p.ownerId = :ownerId AND " +
+            "(:status IS NULL OR p.status = :status) AND " +
+            "(:sector IS NULL OR p.sector = :sector) AND " +
+            "(:search IS NULL OR :search = '' OR " +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(p.ownerInstitution) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Project> findByOwnerIdWithFilters(
+            @Param("ownerId") UUID ownerId,
+            @Param("status") ProjectStatus status,
+            @Param("sector") Sector sector,
+            @Param("search") String search,
+            Pageable pageable
+    );
+
     List<Project> findAllByIdIn(List<Long> ids);
 
     /**

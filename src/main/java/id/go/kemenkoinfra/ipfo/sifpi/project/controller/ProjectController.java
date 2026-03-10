@@ -1,6 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.project.controller;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.CatalogueExportFileDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.service.CatalogueExportService;
@@ -61,12 +62,14 @@ public class ProjectController {
 
     /**
      * PM-3: Get all projects created by the authenticated project owner
-     * Supports filtering by status and pagination with sorting
+     * Supports filtering by status, sector, search term and pagination with sorting
      */
     @PreAuthorize("hasAuthority('PROJECT:READ')")
     @GetMapping("/my-projects")
     public ResponseEntity<BaseResponseDTO<PagedResponseDTO<ProjectListItemDTO>>> getMyProjects(
             @RequestParam(required = false) ProjectStatus status,
+            @RequestParam(required = false) Sector sector,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -74,6 +77,8 @@ public class ProjectController {
 
         PagedResponseDTO<ProjectListItemDTO> result = readProjectService.getMyProjects(
                 status,
+                sector,
+                search,
                 page,
                 size,
                 sortBy,
