@@ -56,7 +56,7 @@ public interface AdminProjectService {
 
     /**
      * PM-7: Reject a project (single update)
-     * Changes project status from IN_REVIEW back to DRAFT
+     * Changes project status from DIAJUKAN or IN_REVIEW to PERBAIKAN_DATA
      * Records rejection reason in verification records
      * 
      * @param projectId ID of the project to reject
