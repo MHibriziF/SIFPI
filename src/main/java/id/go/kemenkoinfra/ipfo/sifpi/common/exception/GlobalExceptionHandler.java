@@ -72,6 +72,12 @@ public class GlobalExceptionHandler {
         return responseUtil.error("Permintaan tidak valid: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<?> handleBadRequestException(BadRequestException ex) {
+        log.warn("Bad Request: {}", ex.getMessage());
+        return responseUtil.error(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> handleIllegalState(IllegalStateException ex) {
         log.warn("Conflict: {}", ex.getMessage(), ex);

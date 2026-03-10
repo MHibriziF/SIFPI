@@ -11,6 +11,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.UserToken;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserTokenRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.TokenType;
+import id.go.kemenkoinfra.ipfo.sifpi.common.exception.BadRequestException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.SecurityException;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.SetPasswordRequest;
@@ -70,17 +71,17 @@ public class PasswordServiceImpl implements PasswordService {
 
         // Validate password confirmation
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new SecurityException("Password baru dan konfirmasi password tidak sama");
+            throw new BadRequestException("Password baru dan konfirmasi password tidak sama");
         }
 
         // Validate current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new SecurityException("Password saat ini tidak valid");
+            throw new BadRequestException("Password saat ini salah");
         }
 
         // Check if new password is same as current password
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new SecurityException("Password baru tidak boleh sama dengan password saat ini");
+            throw new BadRequestException("Password baru tidak boleh sama dengan password lama");
         }
 
         // Update password

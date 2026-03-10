@@ -61,10 +61,10 @@ public class UpdateProjectServiceImpl implements UpdateProjectService {
             throw new ForbiddenException("Anda tidak memiliki akses untuk mengedit proyek ini");
         }
 
-        // 3. Validate status - only DRAFT can be edited
-        if (project.getStatus() != ProjectStatus.DRAFT) {
+        // 3. Validate status - only DRAFT or PERBAIKAN_DATA can be edited
+        if (project.getStatus() != ProjectStatus.DRAFT && project.getStatus() != ProjectStatus.PERBAIKAN_DATA) {
             log.warn("Attempt to edit project {} with status {}", projectId, project.getStatus());
-            throw new ForbiddenException("Hanya proyek dengan status DRAFT yang dapat diedit");
+            throw new ForbiddenException("Hanya proyek dengan status DRAFT atau PERBAIKAN DATA yang dapat diedit");
         }
 
         // 4. Upload new files if provided (optional)
@@ -107,11 +107,18 @@ public class UpdateProjectServiceImpl implements UpdateProjectService {
         // 6. Update project fields (partial update using MapStruct)
         projectMapper.updateEntity(request, project);
 
-        // 7. Save project
+        // 7. Handle submit for review: if isSubmitted=true, change status to DIAJUKAN
+        if (Boolean.TRUE.equals(request.getIsSubmitted())) {
+            log.info("Project {} submitted for review", projectId);
+            project.setStatus(ProjectStatus.DIAJUKAN);
+            project.setIsSubmitted(true);
+        }
+
+        // 8. Save project
         Project updatedProject = projectRepository.save(project);
         log.info("Project {} updated successfully", projectId);
 
-        // 8. Return DTO with file URLs
+        // 9. Return DTO with file URLs
         return projectMapper.toDTO(updatedProject, storageService);
     }
 

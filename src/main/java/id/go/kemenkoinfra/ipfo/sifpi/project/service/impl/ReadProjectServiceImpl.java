@@ -4,6 +4,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
+import id.go.kemenkoinfra.ipfo.sifpi.common.services.StorageService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.mapper.ProjectMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.project.model.Project;
@@ -33,6 +34,7 @@ public class ReadProjectServiceImpl implements ReadProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMapper projectMapper;
     private final UserRepository userRepository;
+    private final StorageService storageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -78,7 +80,14 @@ public class ReadProjectServiceImpl implements ReadProjectService {
 
         // Map to DTOs
         List<ProjectListItemDTO> projectDTOs = projectPage.getContent().stream()
-                .map(projectMapper::toListItemDTO)
+                .map(project -> {
+                    ProjectListItemDTO dto = projectMapper.toListItemDTO(project);
+                    // Set full R2 public URLs for images
+                    if (project.getLocationImageKey() != null && !project.getLocationImageKey().isBlank()) {
+                        dto.setLocationImageUrl(storageService.getPublicUrl(project.getLocationImageKey()));
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         // Build paged response

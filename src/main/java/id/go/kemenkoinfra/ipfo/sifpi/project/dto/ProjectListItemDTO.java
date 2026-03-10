@@ -23,6 +23,7 @@ public class ProjectListItemDTO {
     private ProjectStatus status;
     private String location;
     private String description;
+    private String locationImageUrl;
     private Boolean isSubmitted;
     private LocalDateTime createdAt;
     private LocalDateTime editedAt;
