@@ -213,10 +213,10 @@ public class AdminProjectServiceImpl implements AdminProjectService {
                     return new NotFoundException("Proyek dengan ID " + projectId + " tidak ditemukan");
                 });
 
-        // Validate status is IN_REVIEW
-        if (!project.getStatus().equals(ProjectStatus.IN_REVIEW)) {
-            log.warn("Cannot approve project - status is not IN_REVIEW - projectId: {}, status: {}", projectId, project.getStatus());
-            throw new java.lang.IllegalArgumentException("Hanya proyek dengan status 'In Review' yang bisa di-approve");
+        // Validate status is DIAJUKAN or IN_REVIEW
+        if (!project.getStatus().equals(ProjectStatus.IN_REVIEW) && !project.getStatus().equals(ProjectStatus.DIAJUKAN)) {
+            log.warn("Cannot approve project - status is not DIAJUKAN or IN_REVIEW - projectId: {}, status: {}", projectId, project.getStatus());
+            throw new java.lang.IllegalArgumentException("Hanya proyek dengan status 'Diajukan' atau 'In Review' yang bisa di-approve");
         }
 
         // Get admin name
@@ -253,18 +253,18 @@ public class AdminProjectServiceImpl implements AdminProjectService {
                     return new NotFoundException("Proyek dengan ID " + projectId + " tidak ditemukan");
                 });
 
-        // Validate status is IN_REVIEW
-        if (!project.getStatus().equals(ProjectStatus.IN_REVIEW)) {
-            log.warn("Cannot reject project - status is not IN_REVIEW - projectId: {}, status: {}", projectId, project.getStatus());
-            throw new java.lang.IllegalArgumentException("Hanya proyek dengan status 'In Review' yang bisa di-reject");
+        // Validate status is DIAJUKAN or IN_REVIEW
+        if (!project.getStatus().equals(ProjectStatus.IN_REVIEW) && !project.getStatus().equals(ProjectStatus.DIAJUKAN)) {
+            log.warn("Cannot reject project - status is not DIAJUKAN or IN_REVIEW - projectId: {}, status: {}", projectId, project.getStatus());
+            throw new java.lang.IllegalArgumentException("Hanya proyek dengan status 'Diajukan' atau 'In Review' yang bisa di-reject");
         }
 
         // Get admin name
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new NotFoundException("Admin tidak ditemukan"));
 
-        // Update status to DRAFT
-        project.setStatus(ProjectStatus.DRAFT);
+        // Update status to PERBAIKAN_DATA
+        project.setStatus(ProjectStatus.PERBAIKAN_DATA);
         Project updatedProject = projectRepository.save(project);
 
         // Record verification
