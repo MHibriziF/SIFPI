@@ -27,7 +27,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.services.EmailService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.EmailTemplateUtil;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertResultDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertRowErrorDTO;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.BulkInsertUserRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.BulkInsertUserRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.BulkUserImportService;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;

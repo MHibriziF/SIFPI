@@ -15,7 +15,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserTokenRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UpdateProfileRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.UpdateProfileRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UserDetailDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.mapper.UserDetailMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.UpdateProfileService;

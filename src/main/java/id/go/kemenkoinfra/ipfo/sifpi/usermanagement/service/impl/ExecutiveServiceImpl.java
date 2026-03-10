@@ -19,7 +19,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.common.exception.ConflictException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
 import id.go.kemenkoinfra.ipfo.sifpi.common.services.EmailService;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.EmailTemplateUtil;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.CreateExecutiveRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.CreateExecutiveRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.ExecutiveDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.mapper.ExecutiveMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.ExecutiveService;
