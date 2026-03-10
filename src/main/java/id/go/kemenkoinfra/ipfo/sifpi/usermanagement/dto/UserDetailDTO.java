@@ -41,6 +41,17 @@ public class UserDetailDTO {
     @JsonProperty("email_verified")
     private Boolean emailVerified;
 
+    /**
+     * For PROJECT_OWNER only: true if admin has verified the owner's account
+     * via PATCH /api/admin/users/{email}/verify.
+     * Null for all other roles.
+     */
+    @JsonProperty("owner_verified")
+    private Boolean ownerVerified;
+
+    @JsonProperty("is_active")
+    private Boolean isActive;
+
     /** Not yet tracked in the model — always null until a phoneVerified field is added to User. */
     @JsonProperty("phone_verified")
     private Boolean phoneVerified;

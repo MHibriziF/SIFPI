@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.InvestorProfile;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.InvestorProfileRepository;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ProjectOwnerProfileRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserTokenRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
@@ -31,6 +32,7 @@ public class AdminUserDetailServiceImpl implements AdminUserDetailService {
     private final UserRepository userRepository;
     private final UserTokenRepository userTokenRepository;
     private final InvestorProfileRepository investorProfileRepository;
+    private final ProjectOwnerProfileRepository projectOwnerProfileRepository;
     private final ProjectRepository projectRepository;
     private final UserDetailMapper userDetailMapper;
 
@@ -69,6 +71,12 @@ public class AdminUserDetailServiceImpl implements AdminUserDetailService {
     }
 
     private void enrichProjectOwnerFields(UserDetailDTO dto, User user) {
+        // Set admin verification status from ProjectOwnerProfile
+        projectOwnerProfileRepository.findByUserId(user.getId()).ifPresentOrElse(
+            profile -> dto.setOwnerVerified(profile.isVerified()),
+            () -> dto.setOwnerVerified(false)
+        );
+
         long projectCount = projectRepository.countByOwnerId(user.getId());
         dto.setJumlahProyek((int) projectCount);
         dto.setInquiryMasuk(0); // placeholder — Inquiry feature not yet implemented

@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -41,6 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             String subject = claims.getSubject();
+
+            // Reject requests from deactivated users even if JWT is still valid
+            boolean isActive = userRepository.findByEmail(subject)
+                    .map(u -> u.isActive())
+                    .orElse(false);
+            if (!isActive) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             List<SimpleGrantedAuthority> authorities = new ArrayList<>();
             String role = claims.get("role", String.class);

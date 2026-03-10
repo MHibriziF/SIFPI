@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
+import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.ProjectOwnerProfileRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
@@ -57,6 +58,7 @@ public class CreateProjectServiceImpl implements CreateProjectService {
     private final ProjectMapper projectMapper;
     private final StorageService storageService;
     private final UserRepository userRepository;
+    private final ProjectOwnerProfileRepository projectOwnerProfileRepository;
 
     @Override
     @Transactional
@@ -487,6 +489,18 @@ public class CreateProjectServiceImpl implements CreateProjectService {
 
         if (!user.isEmailVerified()) {
             throw new AccessDeniedException("User belum terverifikasi.");
+        }
+
+        // For PROJECT_OWNER, also require admin verification of their account
+        String roleName = user.getRole() != null ? user.getRole().getName() : null;
+        if ("PROJECT_OWNER".equals(roleName)) {
+            boolean adminVerified = projectOwnerProfileRepository
+                    .findByUserId(user.getId())
+                    .map(profile -> profile.isVerified())
+                    .orElse(false);
+            if (!adminVerified) {
+                throw new AccessDeniedException("Akun Project Owner belum diverifikasi oleh admin.");
+            }
         }
 
         return user;

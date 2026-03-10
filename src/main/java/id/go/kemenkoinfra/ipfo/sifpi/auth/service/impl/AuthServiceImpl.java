@@ -42,6 +42,11 @@ public class AuthServiceImpl implements AuthService {
             throw new SecurityException("Email atau password salah.");
         }
 
+        // Check if account is active
+        if (!user.isActive()) {
+            throw new SecurityException("Akun Anda telah dinonaktifkan. Hubungi administrator untuk informasi lebih lanjut.");
+        }
+
         // NEW: Check if email is verified
         if (!user.isEmailVerified()) {
             throw new SecurityException("Email Anda belum diverifikasi. Silakan cek email Anda untuk link verifikasi.");
