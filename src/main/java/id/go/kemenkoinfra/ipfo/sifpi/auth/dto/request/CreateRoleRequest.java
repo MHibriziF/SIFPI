@@ -23,4 +23,6 @@ public class CreateRoleRequest {
 
     @Valid
     private List<PermissionRequest> permissions = new ArrayList<>();
+
+    private List<String> userEmails = new ArrayList<>();
 }
