@@ -1,6 +1,7 @@
 package id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto;
 
-import jakarta.validation.constraints.NotNull;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +9,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateUserStatusRequest {
-    @NotNull(message = "isActive tidak boleh kosong")
-    private Boolean isActive;
+public class BatchUpdateUserRoleResultDTO {
+
+    private int totalRequested;
+    private int updatedCount;
+    private List<BatchRoleUpdateErrorDTO> errors;
 }

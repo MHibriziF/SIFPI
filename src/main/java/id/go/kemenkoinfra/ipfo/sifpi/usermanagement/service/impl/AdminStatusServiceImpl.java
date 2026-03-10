@@ -3,7 +3,7 @@ package id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.impl;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.exception.NotFoundException;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UpdateUserStatusRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.UpdateUserStatusRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UserStatusResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.mapper.UserStatusMapper;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.AdminStatusService;

@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.CreateExecutiveRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.CreateExecutiveRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.ExecutiveDTO;
 
 @Mapper(componentModel = "spring")

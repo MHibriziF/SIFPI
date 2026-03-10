@@ -1,6 +1,6 @@
 package id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service;
 
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.CreateExecutiveRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.CreateExecutiveRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.ExecutiveDTO;
 
 /**

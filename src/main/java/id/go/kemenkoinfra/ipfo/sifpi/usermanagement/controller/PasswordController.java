@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.BaseResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.utils.ResponseUtil;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.SetPasswordRequest;
-import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.UpdatePasswordRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.SetPasswordRequest;
+import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request.UpdatePasswordRequest;
 import id.go.kemenkoinfra.ipfo.sifpi.usermanagement.service.PasswordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

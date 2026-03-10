@@ -1,4 +1,4 @@
-package id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto;
+package id.go.kemenkoinfra.ipfo.sifpi.usermanagement.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
