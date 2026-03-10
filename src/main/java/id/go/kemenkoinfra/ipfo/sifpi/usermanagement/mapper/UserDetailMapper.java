@@ -14,6 +14,7 @@ public interface UserDetailMapper {
     @Mapping(source = "role", target = "role", qualifiedByName = "roleToString")
     @Mapping(source = "organization", target = "organisasi")
     @Mapping(source = "emailVerified", target = "emailVerified")
+    @Mapping(source = "active", target = "isActive")
     @Mapping(target = "lastLogin", ignore = true)
     @Mapping(target = "phoneVerified", ignore = true)
     @Mapping(target = "jumlahProyek", ignore = true)
