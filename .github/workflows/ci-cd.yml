@@ -63,24 +63,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-production:
-    needs: docker-build-production
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/railwayapp/cli:latest
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
-    steps:
-      - name: Deploy to Railway (production)
-        run: railway redeploy --service=${{ secrets.SVC_ID }} -y
-
-  deploy-staging:
-    needs: docker-build-staging
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/railwayapp/cli:latest
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
-    steps:
-      - name: Deploy to Railway (staging)
-        run: railway redeploy --service=${{ secrets.SVC_ID }} -y

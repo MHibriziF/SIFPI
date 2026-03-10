@@ -5,7 +5,6 @@ workflow:
 stages:
   - build
   - docker
-  - deploy
 
 gradle-build:
   stage: build
@@ -34,25 +33,5 @@ docker-build-staging:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"$(printf '%s:%s' "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $DOCKERHUB_USERNAME/sifpi-be:$CI_COMMIT_SHORT_SHA --destination $DOCKERHUB_USERNAME/sifpi-be:staging
-  rules:
-    - if: $CI_COMMIT_BRANCH == "staging"
-
-deploy-production:
-  stage: deploy
-  image: ghcr.io/railwayapp/cli:latest
-  variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN_PROD
-  script:
-    - railway redeploy --service=$SVC_ID -y
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-
-deploy-staging:
-  stage: deploy
-  image: ghcr.io/railwayapp/cli:latest
-  variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN_STAGING
-  script:
-    - railway redeploy --service=$SVC_ID -y
   rules:
     - if: $CI_COMMIT_BRANCH == "staging"
