@@ -30,8 +30,10 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     /**
      * PM-9: Find all projects with optional filters for admin
      * Supports filtering by status, sector, owner ID, and search term
+     * NOTE: DRAFT projects are excluded - only visible to project owner
      */
     @Query("SELECT p FROM Project p WHERE " +
+            "p.status != 'DRAFT' AND " +
             "(:status IS NULL OR p.status = :status) AND " +
             "(:sector IS NULL OR p.sector = :sector) AND " +
             "(:ownerId IS NULL OR p.ownerId = :ownerId) AND " +
