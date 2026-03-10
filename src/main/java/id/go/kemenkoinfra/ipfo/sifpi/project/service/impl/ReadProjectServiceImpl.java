@@ -4,6 +4,7 @@ import id.go.kemenkoinfra.ipfo.sifpi.auth.model.User;
 import id.go.kemenkoinfra.ipfo.sifpi.auth.repository.UserRepository;
 import id.go.kemenkoinfra.ipfo.sifpi.common.dto.PagedResponseDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.common.enums.ProjectStatus;
+import id.go.kemenkoinfra.ipfo.sifpi.common.enums.Sector;
 import id.go.kemenkoinfra.ipfo.sifpi.common.services.StorageService;
 import id.go.kemenkoinfra.ipfo.sifpi.project.dto.ProjectListItemDTO;
 import id.go.kemenkoinfra.ipfo.sifpi.project.mapper.ProjectMapper;
@@ -40,6 +41,8 @@ public class ReadProjectServiceImpl implements ReadProjectService {
     @Transactional(readOnly = true)
     public PagedResponseDTO<ProjectListItemDTO> getMyProjects(
             ProjectStatus status,
+            Sector sector,
+            String search,
             int page,
             int size,
             String sortBy,
@@ -48,8 +51,8 @@ public class ReadProjectServiceImpl implements ReadProjectService {
         // Get current authenticated user
         UUID ownerId = resolveCurrentUserId();
 
-        log.info("Fetching projects for owner: {}, status: {}, page: {}, size: {}, sortBy: {}, sortDirection: {}",
-                ownerId, status, page, size, sortBy, sortDirection);
+        log.info("Fetching projects for owner: {}, status: {}, sector: {}, search: {}, page: {}, size: {}, sortBy: {}, sortDirection: {}",
+                ownerId, status, sector, search, page, size, sortBy, sortDirection);
 
         // Validate and set default values
         if (page < 0) page = 0;
@@ -57,26 +60,23 @@ public class ReadProjectServiceImpl implements ReadProjectService {
         if (sortBy == null || sortBy.isBlank()) sortBy = "createdAt";
         if (sortDirection == null || sortDirection.isBlank()) sortDirection = "desc";
 
+        // Normalize search: empty string → null
+        String normalizedSearch = (search == null || search.isBlank()) ? null : search;
+
         // Create sort object
-        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") 
-                ? Sort.Direction.ASC 
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC
                 : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, sortBy);
 
         // Create pageable
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Fetch projects based on filter
-        Page<Project> projectPage;
-        if (status != null) {
-            projectPage = projectRepository.findByOwnerIdAndStatus(ownerId, status, pageable);
-            log.info("Found {} projects with status {} for owner {}", 
-                    projectPage.getTotalElements(), status, ownerId);
-        } else {
-            projectPage = projectRepository.findByOwnerId(ownerId, pageable);
-            log.info("Found {} total projects for owner {}", 
-                    projectPage.getTotalElements(), ownerId);
-        }
+        // Fetch projects using unified filter query
+        Page<Project> projectPage = projectRepository.findByOwnerIdWithFilters(
+                ownerId, status, sector, normalizedSearch, pageable);
+
+        log.info("Found {} projects for owner {}", projectPage.getTotalElements(), ownerId);
 
         // Map to DTOs
         List<ProjectListItemDTO> projectDTOs = projectPage.getContent().stream()
